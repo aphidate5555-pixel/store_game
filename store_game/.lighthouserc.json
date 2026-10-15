@@ -1,0 +1,41 @@
+{
+  "ci": {
+    "collect": {
+      "url": ["http://127.0.0.1:3100/", "http://127.0.0.1:3100/products"],
+      "startServerCommand": "npm run dev",
+      "startServerReadyPattern": "Ready",
+      "numberOfRuns": 3,
+      "settings": {
+        "preset": "desktop",
+        "chromeFlags": "--no-sandbox --headless"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.85 }],
+        "categories:accessibility": ["error", { "minScore": 0.95 }],
+        "categories:best-practices": ["warn", { "minScore": 0.85 }],
+        "categories:seo": ["warn", { "minScore": 0.9 }]
+      },
+      "preset": "lighthouse:recommended",
+      "audit.assertions": {
+        "first-contentful-paint": ["error", { "maxNumericValue": 2000 }],
+        "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["error", { "maxNumericValue": 200 }],
+        "speed-index": ["warn", { "maxNumericValue": 3400 }]
+      }
+    }
+  },
+  "notes": {
+    "budgets": [
+      "LCP 2500ms — the hero image is the largest element and is loaded with priority",
+      "CLS 0.1 — every media box carries an aspect-ratio, which is what reserves its space",
+      "TBT 200ms — the only client JavaScript on the storefront is the filter sheet, the order button and the toast"
+    ],
+    "excluded": [
+      "Budgets are not enforced on the concept routes: /concept/b and /concept/c are comparison pages, not the shipped storefront",
+      "Budgets are not enforced on /admin: it is behind a login and not a public page"
+    ]
+  }
+}

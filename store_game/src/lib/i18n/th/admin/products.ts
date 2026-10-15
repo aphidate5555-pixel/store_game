@@ -1,0 +1,96 @@
+export const adminTh = {
+  'admin.products.title': 'จัดการสินค้า',
+  'admin.products.subtitle': 'เพิ่ม แก้ไข และปรับสถานะไอดีทั้งหมดของร้าน',
+  'admin.products.new': 'เพิ่มสินค้าใหม่',
+  'admin.products.edit': 'แก้ไขสินค้า',
+  'admin.products.searchPlaceholder': 'ค้นหารหัสสินค้า ชื่อสินค้า หรือชื่อเกม',
+  'admin.products.filterGame': 'ทุกเกม',
+  'admin.products.filterStatus': 'ทุกสถานะ',
+  'admin.products.filterVisibility': 'ทุกสถานะการแสดงผล',
+  'admin.products.visibilityVisible': 'แสดงบนเว็บไซต์',
+  'admin.products.visibilityHidden': 'ซ่อนจากเว็บไซต์',
+  'admin.products.resultCount': 'พบ {count} จาก {total} รายการ',
+  'admin.products.empty': 'ยังไม่มีสินค้าในระบบ',
+  'admin.products.emptyBody': 'เริ่มต้นด้วยการเพิ่มสินค้าชิ้นแรกของร้าน',
+
+  // ---- table ------------------------------------------------------------
+  'admin.products.columnCode': 'รหัสสินค้า',
+  'admin.products.columnName': 'ชื่อสินค้า',
+  'admin.products.columnGame': 'เกม',
+  'admin.products.columnPrice': 'ราคา',
+  'admin.products.columnStatus': 'สถานะ',
+  'admin.products.columnImages': 'รูปภาพ',
+  'admin.products.columnUpdated': 'แก้ไขล่าสุด',
+  'admin.products.columnActions': 'จัดการ',
+  'admin.products.imagesCount': '{count} รูป',
+  'admin.products.imagesNone': 'ยังไม่มีรูป',
+
+  // ---- form sections ----------------------------------------------------
+  'admin.products.sectionBasic': 'ข้อมูลพื้นฐาน',
+  'admin.products.sectionInGame': 'ข้อมูลในเกม',
+  'admin.products.sectionPrice': 'ราคาและสกุลเงิน',
+  'admin.products.sectionImages': 'รูปภาพสินค้า',
+  'admin.products.sectionStatus': 'สถานะการขาย',
+
+  // ---- fields -----------------------------------------------------------
+  'admin.products.fieldCode': 'รหัสสินค้า',
+  'admin.products.fieldCodeHint': 'ตัวอักษร ตัวเลข และขีดกลางเท่านั้น เช่น ML-20481',
+  'admin.products.fieldCodeChecking': 'กำลังตรวจสอบรหัส…',
+  'admin.products.fieldCodeAvailable': 'รหัสนี้ใช้ได้',
+  'admin.products.fieldCodeTaken': 'รหัสนี้ถูกใช้งานแล้ว',
+  'admin.products.fieldName': 'ชื่อสินค้า',
+  'admin.products.fieldNameHint': 'ชื่อที่ลูกค้าจะเห็นบนหน้าเว็บและในผลการค้นหา',
+  'admin.products.fieldGame': 'เกม',
+  'admin.products.fieldGameHint': 'เลือกหมวดหมู่ที่สินค้านี้อยู่',
+  'admin.products.fieldPrice': 'ราคา',
+  'admin.products.fieldPriceHint': 'ตัวเลขจำนวนเต็ม ไม่มีจุดทศนิยม ไม่มีเครื่องหมายคอมมา',
+  'admin.products.fieldCurrency': 'สกุลเงิน',
+  'admin.products.fieldCurrencyHint': 'เลือกสกุลเงินที่ใช้แสดงผลบนเว็บไซต์',
+  'admin.products.fieldRank': 'ระดับ',
+  'admin.products.fieldRankHint': 'เช่น Mythic, Legend หรือเว้นว่างไว้',
+  'admin.products.fieldHeroCount': 'จำนวนฮีโร่',
+  'admin.products.fieldHeroCountHint': 'จำนวนฮีโร่ที่รวมอยู่ในไอดีนี้',
+  'admin.products.fieldSkinCount': 'จำนวนสกิน',
+  'admin.products.fieldSkinCountHint': 'จำนวนสกินที่รวมอยู่ในไอดีนี้',
+  'admin.products.fieldBinding': 'การผูกบัญชี',
+  'admin.products.fieldBindingHint': 'ระบุว่าไอดีนี้ผูกกับบัญชีของผู้ซื้อหรือไม่',
+  'admin.products.fieldDescription': 'รายละเอียด',
+  'admin.products.fieldDescriptionHint': 'รายละเอียดเพิ่มเติมที่ลูกค้าจะอ่าน สูงสุด 2000 ตัวอักษร',
+  'admin.products.fieldStatus': 'สถานะการขาย',
+  'admin.products.fieldStatusHint': 'สินค้าที่ขายแล้วยังคงแสดงบนเว็บไซต์ แต่จะไม่สามารถสั่งซื้อได้',
+  'admin.products.fieldVisibility': 'การแสดงผลบนเว็บไซต์',
+  'admin.products.fieldVisibilityHint': 'สินค้าที่ซ่อนจะไม่ปรากฏในหน้าเว็บไซต์และใน sitemap',
+  'admin.products.fieldFeatured': 'แสดงในสินค้าแนะนำ',
+  'admin.products.fieldFeaturedHint': 'สินค้าจะปรากฏในชั้นวางสินค้าแนะนำบนหน้าแรก',
+
+  // ---- currency ---------------------------------------------------------
+  'admin.products.currencyThbLabel': 'บาท (THB)',
+  'admin.products.currencyLakLabel': 'ลาว (LAK)',
+  'admin.products.currencyPreviewThb': 'ตัวอย่างที่แสดงบนเว็บไซต์: ฿1,250',
+  'admin.products.currencyPreviewLak': 'ตัวอย่างที่แสดงบนเว็บไซต์: 1,250,000 ลาว (LAK)',
+  'admin.products.currencyNoConversion':
+    'ราคาที่มีอยู่จะไม่ถูกแปลงสกุลเงิน ระบบจะแสดงตามสกุลที่เลือกเท่านั้น',
+  'admin.products.currencyChangeWarning':
+    'เปลี่ยนสกุลเงินแล้ว ตัวเลขราคาจะถูกตีความใหม่ตามสกุลใหม่ทันที กรุณาตรวจสอบราคาอีกครั้ง',
+
+  // ---- status -----------------------------------------------------------
+  'admin.products.statusAvailable': 'พร้อมขาย',
+  'admin.products.statusSold': 'ขายแล้ว',
+  'admin.products.setAvailable': 'เปลี่ยนเป็นพร้อมขาย',
+  'admin.products.setSold': 'เปลี่ยนเป็นขายแล้ว',
+
+  // ---- delete -----------------------------------------------------------
+  'admin.products.deleteTitle': 'ลบสินค้านี้?',
+  'admin.products.deleteConfirmBody':
+    'สินค้า {productId} จะถูกลบถาวร รวมถึงรูปภาพทั้งหมดของสินค้านี้',
+  'admin.products.deleteSuccess': 'ลบสินค้าแล้ว',
+  'admin.products.bulkDelete': 'ลบที่เลือก',
+  'admin.products.bulkDeleteConfirm': 'ลบสินค้าที่เลือก {count} รายการ?',
+  'admin.products.bulkDeleteLimit': 'เลือกได้สูงสุด 50 รายการต่อครั้ง',
+
+  'admin.products.unsavedChanges': 'มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก',
+  'admin.products.saveSuccess': 'บันทึกสินค้าเรียบร้อยแล้ว',
+  'admin.products.createSuccess': 'เพิ่มสินค้าเรียบร้อยแล้ว',
+  'admin.products.notFound': 'ไม่พบสินค้านี้',
+  'admin.products.notFoundBody': 'สินค้าอาจถูกลบไปแล้ว กรุณากลับไปหน้ารายการสินค้า',
+} as const

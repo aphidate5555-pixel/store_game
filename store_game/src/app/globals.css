@@ -1,0 +1,177 @@
+@import 'tailwindcss';
+
+/**
+ * Every colour is a custom property with a literal fallback. The fallbacks
+ * matter: the root layout injects the brand values at request time, and if that
+ * fetch fails (which is exactly when maintenance is on) the page must still
+ * render in a readable theme rather than with undefined colours.
+ */
+@theme inline {
+  --color-ink: var(--color-ink, #08080a);
+  --color-surface: var(--color-surface, #101014);
+  --color-surface-2: var(--color-surface-2, #16161c);
+  --color-surface-3: var(--color-surface-3, #1e1e26);
+  --color-line: var(--color-line, #26262f);
+  --color-line-ctl: var(--color-line-ctl, #343440);
+
+  --color-text: var(--color-text, #f5f5f7);
+  --color-text-2: var(--color-text-2, #a8a8b3);
+  --color-text-3: var(--color-text-3, #7c7c8a);
+
+  --color-primary: var(--color-primary, #e11d2e);
+  --color-primary-hover: var(--color-primary-hover, #b91c1c);
+  --color-primary-soft: var(--color-primary-soft, #3a1418);
+  --color-on-primary: var(--color-on-primary, #ffffff);
+
+  --color-accent: var(--color-accent, #f59e0b);
+  --color-success: var(--color-success, #22c55e);
+  --color-warning: var(--color-warning, #eab308);
+  --color-danger: var(--color-danger, #ef4444);
+
+  /* Motion. Four durations, no more — an unlisted duration is a review item. */
+  --duration-micro: 150ms;
+  --duration-enter: 200ms;
+  --duration-reveal: 240ms;
+  --duration-sheen: 1600ms;
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    background-color: var(--color-ink);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-text);
+    font-family: var(--font-thai), system-ui, sans-serif;
+    /* Only these four properties are ever animated. Animating width, height or
+       box-shadow forces layout on every frame and is how a "subtle" hover
+       turns into a janky page on a mid-range phone. */
+    transition-property: background-color, border-color, color, opacity;
+    transition-duration: var(--duration-micro);
+    transition-timing-function: var(--ease-out-soft);
+  }
+
+  /* Anything that hides content until JavaScript runs is scoped to data-js.
+     Without the attribute the content is visible, so the page is readable
+     with scripting disabled. */
+  [data-js='true'] [data-reveal] {
+    opacity: 0;
+  }
+
+  [data-reveal='visible'] {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity var(--duration-reveal) var(--ease-out-soft),
+      transform var(--duration-reveal) var(--ease-out-soft);
+  }
+
+  /* Thai text needs a little more leading than a Latin face, and a taller line
+     box or the tone marks on ปิ่ ิ ่ clip against the next line. */
+  :where(th, p, li, span) {
+    line-height: 1.7;
+  }
+}
+
+/**
+ * Focus ring.
+ *
+ * `outline`, not `ring`. A Tailwind ring is a box-shadow, and box-shadow is
+ * clipped by the overflow-hidden on every card and bottom sheet, so the
+ * indicator would vanish exactly where keyboard users need it.
+ */
+@utility focus-ring {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+@utility focus-ring-inset {
+  outline: 2px solid #ffffff;
+  outline-offset: -2px;
+}
+
+/* iOS Safari below 18 does not know scrollbar-width, so both are needed. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility skeleton-sheen {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-surface-2);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--color-text) 8%, transparent),
+      transparent
+    );
+    animation: sheen var(--duration-sheen) linear infinite;
+  }
+}
+
+@keyframes sheen {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/**
+ * A single global kill switch. Motion is decorative on this site, so removing
+ * it costs nothing and removes a whole class of vestibular complaints.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/**
+ * Higher-contrast mode raises the border and secondary-text weight, because a
+ * 1px #26262F border is effectively invisible on some panels at low gamma.
+ */
+@media (prefers-contrast: more) {
+  :root {
+    --color-line: #6b6b7a;
+    --color-line-ctl: #8b8b9a;
+    --color-text-2: #d0d0da;
+    --color-text-3: #b4b4c0;
+  }
+}

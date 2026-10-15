@@ -1,0 +1,57 @@
+# Local Supabase stack for the E2E suite.
+#
+# This is NOT the production project. The hosted project is for manual QA
+# and must never be touched by CI (C-44) — a test that truncates a table
+# would take a real shop's catalogue with it.
+#
+# Only what the suite needs is configured. Auth is email-only because that is
+# what the admin login uses; the e2e administrator is created by
+# scripts/seed-e2e.mjs through the Management API, never by this file.
+
+project_id = "store-game-e2e"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+# Exposed so introspection can be queried from a test, never from the app:
+# the application only ever uses the anon key.
+schemas_search_path = ["public", "extensions"]
+
+[db]
+port = 54322
+major_version = 15
+
+[db.pooler]
+enabled = false
+
+[studio]
+enabled = false
+
+[inbucket]
+enabled = false
+
+[storage]
+enabled = true
+# Mirrors the two buckets in 15_storage.sql. The file_size_limit here is the
+# same 3.5 MB the application enforces in src/lib/images/limits.ts.
+file_size_limit = "3.5MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3100"
+# The PKCE callback is the only redirect the application uses (C-25).
+additional_redirect_urls = ["http://127.0.0.1:3100/auth/callback"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+enable_signup = false
+
+[auth.email]
+enable_signup = false
+# Confirmation is handled by the seeding script, which creates the user
+# through the Management API and marks it confirmed there.
+enable_confirmations = false
+
+[analytics]
+enabled = false
