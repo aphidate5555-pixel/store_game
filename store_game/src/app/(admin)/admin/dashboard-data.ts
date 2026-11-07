@@ -16,7 +16,7 @@ export interface RecentProduct {
   id: string
   product_code: string
   name: string
-  status: 'available' | 'sold'
+  status: 'available' | 'reserved' | 'sold'
   is_visible: boolean
   updated_at: string
   created_at: string
@@ -38,10 +38,10 @@ export interface RecentProduct {
 export async function getDashboardStats(): Promise<DashboardStats | null> {
   const db = await createSupabaseActionClient()
   const { data, error } = await db.rpc('admin_dashboard_stats_gate')
-  if (error) return null
+  if (error || !data) return null
 
-  const row = (data as { [key: string]: Json }[] | null)?.[0]
-  if (!row) return null
+  const row = (Array.isArray(data) ? data[0] : data) as Record<string, Json> | undefined
+  if (!row || typeof row !== 'object') return null
 
   return {
     products_total: Number(row.products_total ?? 0),

@@ -21,6 +21,16 @@ const optionalText = (max: number, message: string) =>
     .optional()
     .or(z.literal('').transform(() => undefined))
 
+const optionalPrice = z.preprocess(
+  (raw) => (raw === null || raw === undefined || (typeof raw === 'string' && raw.trim() === '') ? undefined : raw),
+  z.coerce
+    .number({ invalid_type_error: 'กรุณากรอกราคาเป็นตัวเลขจำนวนเต็ม' })
+    .int('ราคาต้องเป็นจำนวนเต็ม ไม่มีทศนิยม')
+    .min(0, 'ราคาต้องไม่น้อยกว่า 0')
+    .max(1_000_000_000, 'ราคาสูงเกินไป')
+    .optional(),
+)
+
 export const productUpsertSchema = z.object({
   id: z.string().uuid().optional(),
 
@@ -56,6 +66,9 @@ export const productUpsertSchema = z.object({
 
   currency: z.enum(['THB', 'LAK'], { errorMap: () => ({ message: 'กรุณาเลือกสกุลเงิน' }) }),
 
+  priceThb: optionalPrice,
+  priceLak: optionalPrice,
+
   rank: optionalText(32, 'ข้อมูลระดับยาวเกินไป'),
   description: optionalText(2000, 'รายละเอียดยาวเกินไป (สูงสุด 2000 ตัวอักษร)'),
 
@@ -63,7 +76,7 @@ export const productUpsertSchema = z.object({
   skinCount: z.coerce.number().int('จำนวนต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป').min(0).max(9999).default(0),
 
   binding: z.enum(['bound', 'unbound']).optional().or(z.literal('').transform(() => undefined)),
-  status: z.enum(['available', 'sold']).default('available'),
+  status: z.enum(['available', 'reserved', 'sold']).default('available'),
   isVisible: z.coerce.boolean().default(true),
   featuredAt: z.string().datetime().nullable().optional(),
 })

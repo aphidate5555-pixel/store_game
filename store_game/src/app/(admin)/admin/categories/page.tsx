@@ -25,13 +25,13 @@ async function listCategoriesWithCounts(): Promise<CategoryWithCount[]> {
 
   const { data, error } = await db
     .from('games')
-    .select('*, products(count, status)')
+    .select('*, products(id, status)')
     .order('position', { ascending: true })
 
   if (error) return []
 
   return ((data ?? []) as unknown as (CategoryWithCount & {
-    products: { count: number; status: 'available' | 'sold' }[]
+    products: { id: string; status: 'available' | 'reserved' | 'sold' }[]
   })[]).map((game) => {
     const products = game.products ?? []
     return {

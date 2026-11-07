@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
 import { StatusBadge } from '@/components/ui/badge'
-import { formatPrice } from '@/lib/format/money'
+import { formatCodePrice, getProductPrices } from '@/lib/format/money'
 import { formatCount, formatDateTime } from '@/lib/format/number'
 import { t } from '@/lib/i18n/th/admin'
 import { setProductStatusAction, deleteProductAction } from './actions'
@@ -13,6 +13,20 @@ import type { Database } from '@/lib/database.types'
 
 type ProductRow = Database['public']['Tables']['products']['Row']
 type GameRow = Database['public']['Tables']['games']['Row']
+
+function renderDualPrice(product: ProductRow) {
+  const { thb, lak } = getProductPrices(product)
+  return (
+    <div className="space-y-0.5 tabular-nums">
+      {thb !== null ? (
+        <p className="text-sm font-semibold text-text">{formatCodePrice(thb, 'THB')}</p>
+      ) : null}
+      {lak !== null ? (
+        <p className="text-xs font-medium text-accent">{formatCodePrice(lak, 'LAK')}</p>
+      ) : null}
+    </div>
+  )
+}
 
 /**
  * The product table.
@@ -36,7 +50,7 @@ export function AdminProductList({
 
   const gameName = new Map(games.map((game) => [game.id, game.name]))
 
-  const applyStatus = (product: ProductRow, status: 'available' | 'sold') => {
+  const applyStatus = (product: ProductRow, status: 'available' | 'reserved' | 'sold') => {
     setError(null)
     startTransition(async () => {
       const result = await setProductStatusAction(product.id, product.product_code, status)
@@ -95,6 +109,7 @@ export function AdminProductList({
         >
           <option value="">{t('admin.products.filterStatus')}</option>
           <option value="available">{t('admin.products.statusAvailable')}</option>
+          <option value="reserved">{t('admin.products.statusReserved')}</option>
           <option value="sold">{t('admin.products.statusSold')}</option>
         </select>
         <button
@@ -156,11 +171,11 @@ export function AdminProductList({
               <tbody>
                 {products.map((product) => (
                   <tr key={product.id} className="border-b border-line/60">
-                    <td className="py-2 pr-4 text-text-3">{product.product_code}</td>
-                    <td className="py-2 pr-4">
+                    <td className="py-2.5 pr-4 font-mono text-xs text-text-3">{product.product_code}</td>
+                    <td className="py-2.5 pr-4">
                       <Link
                         href={`/admin/products/${product.id}`}
-                        className="text-text underline underline-offset-4 focus-ring rounded"
+                        className="font-medium text-text underline underline-offset-4 focus-ring rounded"
                       >
                         {product.name}
                       </Link>
@@ -170,23 +185,21 @@ export function AdminProductList({
                         </span>
                       ) : null}
                     </td>
-                    <td className="py-2 pr-4 text-text-2">{gameName.get(product.game_id) ?? '—'}</td>
-                    <td className="py-2 pr-4 text-text">
-                      {formatPrice(product.price_amount, product.currency)}
-                    </td>
-                    <td className="py-2 pr-4">
+                    <td className="py-2.5 pr-4 text-text-2">{gameName.get(product.game_id) ?? '—'}</td>
+                    <td className="py-2.5 pr-4">{renderDualPrice(product)}</td>
+                    <td className="py-2.5 pr-4">
                       <StatusBadge status={product.status} size="sm" />
                     </td>
-                    <td className="py-2 pr-4 text-text-3">{formatDateTime(product.updated_at)}</td>
-                    <td className="py-2">
-                      <div className="flex gap-1">
+                    <td className="py-2.5 pr-4 text-text-3">{formatDateTime(product.updated_at)}</td>
+                    <td className="py-2.5">
+                      <div className="flex flex-wrap gap-1.5">
                         <button
                           type="button"
                           disabled={pending}
                           onClick={() =>
                             applyStatus(product, product.status === 'available' ? 'sold' : 'available')
                           }
-                          className="min-h-11 rounded-lg border border-line px-2 text-xs text-text hover:border-line-ctl focus-ring disabled:opacity-50"
+                          className="min-h-10 rounded-lg border border-line px-2.5 text-xs text-text hover:border-line-ctl focus-ring disabled:opacity-50"
                         >
                           {product.status === 'available'
                             ? t('admin.products.setSold')
@@ -196,7 +209,7 @@ export function AdminProductList({
                           type="button"
                           disabled={pending}
                           onClick={() => remove(product)}
-                          className="min-h-11 rounded-lg border border-danger/40 px-2 text-xs text-danger focus-ring disabled:opacity-50"
+                          className="min-h-10 rounded-lg border border-danger/40 px-2.5 text-xs text-danger focus-ring disabled:opacity-50"
                         >
                           {t('admin.common.delete')}
                         </button>
@@ -214,7 +227,7 @@ export function AdminProductList({
               <li key={product.id} className="rounded-xl border border-line bg-surface p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-xs text-text-3">{product.product_code}</p>
+                    <p className="font-mono text-xs text-text-3">{product.product_code}</p>
                     <p className="mt-0.5 truncate text-sm font-medium text-text">{product.name}</p>
                   </div>
                   <StatusBadge status={product.status} size="sm" />
@@ -227,9 +240,7 @@ export function AdminProductList({
                   </div>
                   <div className="flex justify-between gap-3">
                     <dt className="text-text-3">{t('admin.products.columnPrice')}</dt>
-                    <dd className="text-text">
-                      {formatPrice(product.price_amount, product.currency)}
-                    </dd>
+                    <dd className="text-right">{renderDualPrice(product)}</dd>
                   </div>
                   {!product.is_visible ? (
                     <div className="flex justify-between gap-3">
@@ -267,3 +278,4 @@ export function AdminProductList({
     </div>
   )
 }
+

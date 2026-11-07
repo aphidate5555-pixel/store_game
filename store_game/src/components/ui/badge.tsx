@@ -1,4 +1,4 @@
-import { Ban, CheckCircle2 } from 'lucide-react'
+import { Ban, CheckCircle2, Clock } from 'lucide-react'
 
 import { productStatus } from '@/lib/format/product-status'
 import type { ProductStatus } from '@/lib/format/product-status'
@@ -13,8 +13,9 @@ import type { ProductStatus } from '@/lib/format/product-status'
  * the dark theme makes that pair worse rather than better.
  */
 const TONE_CLASS = {
-  success: 'bg-success/12 text-success border-success/30',
-  danger: 'bg-danger/12 text-danger border-danger/30',
+  success: 'bg-success/15 text-success border-success/40',
+  warning: 'bg-warning/15 text-warning border-warning/40',
+  danger: 'bg-danger/15 text-danger border-danger/40',
 } as const
 
 export function StatusBadge({
@@ -25,17 +26,22 @@ export function StatusBadge({
   size?: 'sm' | 'md'
 }) {
   const presentation = productStatus(status)
-  const Icon = presentation.icon === 'check' ? CheckCircle2 : Ban
+  const Icon =
+    presentation.icon === 'check'
+      ? CheckCircle2
+      : presentation.icon === 'clock'
+        ? Clock
+        : Ban
 
   return (
     <span
       // The visible text already says the status, so the accessible name is
       // not duplicated with aria-label on top of it.
       className={[
-        'inline-flex items-center gap-1 border font-medium whitespace-nowrap',
+        'inline-flex items-center gap-1 border font-medium whitespace-nowrap backdrop-blur-xs',
         TONE_CLASS[presentation.tone],
         presentation.shape,
-        size === 'sm' ? 'px-1.5 py-0.5 text-xs' : 'px-2 py-1 text-xs',
+        size === 'sm' ? 'px-2 py-0.5 text-xs' : 'px-2.5 py-1 text-xs',
       ].join(' ')}
     >
       <Icon size={12} aria-hidden="true" />

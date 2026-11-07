@@ -84,13 +84,23 @@ export default async function GamePage({
           </Link>
         </nav>
 
-        <header>
-          <h1 className="text-xl font-semibold text-text">{game.name}</h1>
-          {game.description ? (
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-2">
-              {game.description}
-            </p>
-          ) : null}
+        <header className="overflow-hidden rounded-2xl border border-line bg-surface p-5 sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-bold text-text sm:text-2xl">{game.name}</h1>
+              {game.description ? (
+                <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-2">
+                  {game.description}
+                </p>
+              ) : null}
+            </div>
+            <Link
+              href={`/products?game=${encodeURIComponent(game.slug)}`}
+              className="inline-flex min-h-10 items-center rounded-lg border border-line-ctl bg-surface-2 px-3.5 text-xs font-medium text-text hover:border-primary/50 focus-ring"
+            >
+              {m.filter.open}
+            </Link>
+          </div>
         </header>
 
         <p className="mt-4 text-sm text-text-3" aria-live="polite">
@@ -116,7 +126,7 @@ export default async function GamePage({
           <ul className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
             {result.items.map((product) => (
               <li key={product.id}>
-                <ProductCard product={product} cover={null} imageCount={0} />
+                <ProductCard product={product} store={config.settings} />
               </li>
             ))}
           </ul>

@@ -21,6 +21,20 @@ import type { Json } from '@/lib/database.types'
 
 const uuidSchema = z.string().uuid()
 
+const optionalPriceField = z.preprocess(
+  (val) => {
+    if (val === '' || val === null || val === undefined) return null
+    return Number(val)
+  },
+  z
+    .number({ invalid_type_error: 'กรุณากรอกราคาเป็นตัวเลขจำนวนเต็ม' })
+    .int('ราคาต้องเป็นจำนวนเต็ม ไม่มีทศนิยม')
+    .min(0, 'ราคาต้องไม่น้อยกว่า 0')
+    .max(999_999_999, 'ราคาสูงเกินไป')
+    .nullable()
+    .optional(),
+)
+
 const productUpsertSchema = z.object({
   id: uuidSchema.optional(),
   productCode: z
@@ -36,17 +50,16 @@ const productUpsertSchema = z.object({
     .min(1, 'กรุณากรอกชื่อสินค้า')
     .max(120, 'ชื่อสินค้าต้องยาวไม่เกิน 120 ตัวอักษร'),
   gameId: uuidSchema,
-  priceAmount: z.coerce
-    .number({ invalid_type_error: 'กรุณากรอกราคา' })
-    .int('ราคาต้องเป็นจำนวนเต็ม ไม่มีทศนิยม')
-    .min(0, 'ราคาต้องไม่น้อยกว่า 0'),
-  currency: z.enum(['THB', 'LAK']),
+  priceThb: optionalPriceField,
+  priceLak: optionalPriceField,
+  priceAmount: optionalPriceField,
+  currency: z.enum(['THB', 'LAK']).optional(),
   rank: z.string().trim().max(32, 'ข้อมูลระดับยาวเกินไป').optional(),
   heroCount: z.coerce.number().int().min(0).max(9999).default(0),
   skinCount: z.coerce.number().int().min(0).max(9999).default(0),
   binding: z.enum(['bound', 'unbound']).optional(),
   description: z.string().trim().max(2000, 'รายละเอียดยาวเกินไป').optional(),
-  status: z.enum(['available', 'sold']).default('available'),
+  status: z.enum(['available', 'reserved', 'sold']).default('available'),
   isVisible: z.coerce.boolean().default(true),
   featuredAt: z.string().datetime().nullable().optional(),
 })
@@ -92,20 +105,23 @@ export async function upsertProductAction(
 ): Promise<ActionResult> {
   await requireAdminAction('จัดการสินค้า')
 
+  const rawBinding = formData.get('binding')
   const parsed = productUpsertSchema.safeParse({
-    id: formData.get('id') ?? undefined,
+    id: formData.get('id') || undefined,
     productCode: formData.get('productCode'),
     name: formData.get('name'),
     gameId: formData.get('gameId'),
+    priceThb: formData.get('priceThb'),
+    priceLak: formData.get('priceLak'),
     priceAmount: formData.get('priceAmount'),
-    currency: formData.get('currency'),
-    rank: formData.get('rank') ?? undefined,
+    currency: formData.get('currency') || undefined,
+    rank: formData.get('rank') || undefined,
     heroCount: formData.get('heroCount') ?? 0,
     skinCount: formData.get('skinCount') ?? 0,
-    binding: formData.get('binding') ?? undefined,
-    description: formData.get('description') ?? undefined,
-    status: formData.get('status'),
-    isVisible: formData.get('isVisible') ?? true,
+    binding: rawBinding === 'bound' || rawBinding === 'unbound' ? rawBinding : undefined,
+    description: formData.get('description') || undefined,
+    status: formData.get('status') || 'available',
+    isVisible: formData.get('isVisible') === 'on' || formData.get('isVisible') === 'true',
     featuredAt: formData.get('featuredAt') || null,
   })
 
@@ -114,14 +130,36 @@ export async function upsertProductAction(
   }
 
   const input = parsed.data
+
+  // Resolve dual-currency prices without any automatic exchange rate conversion.
+  let priceThb = typeof input.priceThb === 'number' ? input.priceThb : null
+  let priceLak = typeof input.priceLak === 'number' ? input.priceLak : null
+
+  if (priceThb === null && priceLak === null && typeof input.priceAmount === 'number') {
+    if (input.currency === 'LAK') {
+      priceLak = input.priceAmount
+    } else {
+      priceThb = input.priceAmount
+    }
+  }
+
+  if (priceThb === null && priceLak === null) {
+    return fail('กรุณากรอกราคาอย่างน้อย 1 สกุลเงิน (THB หรือ LAK)')
+  }
+
+  const primaryCurrency: 'THB' | 'LAK' = priceThb !== null ? 'THB' : 'LAK'
+  const primaryAmount: number = priceThb !== null ? priceThb : (priceLak as number)
+
   const db = await createSupabaseActionClient()
 
   const payload = {
     product_code: input.productCode.toUpperCase(),
     name: input.name,
     game_id: input.gameId,
-    price_amount: input.priceAmount,
-    currency: input.currency,
+    price_amount: primaryAmount,
+    currency: primaryCurrency,
+    price_thb: priceThb,
+    price_lak: priceLak,
     rank: input.rank || null,
     hero_count: input.heroCount,
     skin_count: input.skinCount,
@@ -163,7 +201,7 @@ export async function upsertProductAction(
 export async function setProductStatusAction(
   productId: string,
   productCode: string,
-  status: 'available' | 'sold',
+  status: 'available' | 'reserved' | 'sold',
 ): Promise<ActionResult> {
   await requireAdminAction('จัดการสินค้า')
 
@@ -418,6 +456,28 @@ export async function deleteProductImageAction(
       .remove([row.storage_path, row.full_path].filter(Boolean) as string[])
       .catch(() => null)
   }
+
+  invalidateProduct(productCode)
+  return { ok: true }
+}
+
+export async function setProductCoverAction(
+  productId: string,
+  imageId: string,
+  productCode: string,
+): Promise<ActionResult> {
+  await requireAdminAction('จัดการรูปภาพ')
+
+  const product = uuidSchema.safeParse(productId)
+  const image = uuidSchema.safeParse(imageId)
+  if (!product.success || !image.success) return fail('ข้อมูลไม่ถูกต้อง')
+
+  const db = await createSupabaseActionClient()
+  const { error } = await db.rpc('set_product_cover', {
+    p_product_id: product.data,
+    p_image_id: image.data,
+  })
+  if (error) return fail('ตั้งเป็นภาพปกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')
 
   invalidateProduct(productCode)
   return { ok: true }

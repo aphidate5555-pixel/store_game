@@ -3,9 +3,10 @@ import Link from 'next/link'
 import { ProductCard } from '@/components/product/product-card'
 import { getMessages } from '@/lib/i18n'
 import { sectionPayload } from '@/lib/catalog/site-content'
+import type { EnrichedProduct } from '@/lib/catalog/product-utils'
+import type { WhatsAppStore } from '@/lib/catalog/whatsapp'
 import type { Database } from '@/lib/database.types'
 
-type ProductRow = Database['public']['Tables']['products']['Row']
 type SectionRow = Database['public']['Tables']['site_sections']['Row']
 
 /**
@@ -17,9 +18,11 @@ type SectionRow = Database['public']['Tables']['site_sections']['Row']
 export function AllProducts({
   products,
   sections,
+  store,
 }: {
-  products: ProductRow[]
+  products: EnrichedProduct[]
   sections: readonly SectionRow[]
+  store?: WhatsAppStore | null
 }) {
   const m = getMessages()
   const payload = sectionPayload(sections, 'all_products')
@@ -44,7 +47,7 @@ export function AllProducts({
       <ul className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
         {shown.map((product) => (
           <li key={product.id}>
-            <ProductCard product={product} cover={null} imageCount={0} />
+            <ProductCard product={product} store={store} />
           </li>
         ))}
       </ul>

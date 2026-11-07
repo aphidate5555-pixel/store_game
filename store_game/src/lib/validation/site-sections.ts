@@ -97,7 +97,7 @@ export const siteSectionSchema = z.object({
 
 export type SiteSectionPayload = z.infer<typeof siteSectionSchema>
 
-const SHAPE: Record<SectionKey, z.ZodTypeAny> = {
+export const SECTION_SHAPE: Record<SectionKey, z.ZodTypeAny> = {
   hero: siteSectionSchema.shape.hero ?? z.object({}),
   trust: siteSectionSchema.shape.trust ?? z.object({}),
   categories: siteSectionSchema.shape.categories ?? z.object({}),
@@ -105,6 +105,24 @@ const SHAPE: Record<SectionKey, z.ZodTypeAny> = {
   all_products: siteSectionSchema.shape.all_products ?? z.object({}),
   navigation: siteSectionSchema.shape.navigation ?? z.object({}),
   footer: siteSectionSchema.shape.footer ?? z.object({}),
+}
+
+/**
+ * Validates a section patch (accepting either a flat section object like
+ * `{ title, subtitle }` or a nested `{ hero: { title, subtitle } }` object).
+ */
+export function parseSectionPatch(
+  key: SectionKey,
+  patch: Record<string, unknown>,
+): z.SafeParseReturnType<unknown, Record<string, unknown>> {
+  const candidate =
+    patch && typeof patch[key] === 'object' && patch[key] !== null && !Array.isArray(patch[key])
+      ? (patch[key] as Record<string, unknown>)
+      : patch
+  return SECTION_SHAPE[key].safeParse(candidate) as z.SafeParseReturnType<
+    unknown,
+    Record<string, unknown>
+  >
 }
 
 /**
@@ -116,7 +134,7 @@ const SHAPE: Record<SectionKey, z.ZodTypeAny> = {
  */
 export function readSection<K extends SectionKey>(key: K, raw: unknown): SiteDefaultsFor<K> {
   const defaults = SITE_DEFAULTS[key] as SiteDefaultsFor<K>
-  const parsed = SHAPE[key].safeParse(raw ?? {})
+  const parsed = SECTION_SHAPE[key].safeParse(raw ?? {})
 
   if (!parsed.success) {
     console.warn('[site-sections] payload ไม่ถูกต้องสำหรับ', key, parsed.error.issues)

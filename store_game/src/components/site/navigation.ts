@@ -1,4 +1,5 @@
 import { getMessages } from '@/lib/i18n'
+import { SITE_DEFAULTS } from '@/lib/i18n/th/defaults'
 import { resolveRouteKey, ROUTES, type RouteKey } from '@/lib/validation/route-keys'
 import { safeExternal } from '@/lib/validation/url'
 import { safeStoreWhatsAppUrl, type WhatsAppStore } from '@/lib/catalog/whatsapp'
@@ -21,13 +22,13 @@ export interface NavItem {
  */
 export function buildNavItems(sections: readonly SectionRow[]): NavItem[] {
   const payload = sections.find((s) => s.section_key === 'navigation')?.payload
-  if (typeof payload !== 'object' || payload === null) return []
-
-  const items = (payload as { items?: unknown }).items
-  if (!Array.isArray(items)) return []
+  const rawItems =
+    typeof payload === 'object' && payload !== null && Array.isArray((payload as { items?: unknown }).items)
+      ? ((payload as { items: unknown[] }).items)
+      : SITE_DEFAULTS.navigation.items
 
   const out: NavItem[] = []
-  for (const raw of items) {
+  for (const raw of rawItems) {
     if (typeof raw !== 'object' || raw === null) continue
     const entry = raw as { label?: unknown; route?: unknown }
     if (typeof entry.label !== 'string' || entry.label.length === 0) continue

@@ -4,7 +4,14 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard'
-import { saveSettingsCard, type SettingsResult, type CardKey } from './actions'
+import {
+  saveSettingsCard,
+  uploadBrandAssetAction,
+  removeBrandAssetAction,
+  type SettingsResult,
+  type CardKey,
+} from './actions'
+import { brandMediaUrl } from '@/lib/storage/media-url'
 import { t } from '@/lib/i18n/th/admin'
 import type { Database } from '@/lib/database.types'
 
@@ -104,11 +111,49 @@ export function SettingsForm({ settings }: { settings: SettingsRow }) {
         />
       </Card>
 
-      {/* ---- colours ---------------------------------------------------- */}
+      {/* ---- branding & colours ----------------------------------------- */}
       <Card title={t('admin.appearance.sectionBranding')} onSave={() => save('branding', {
         primary_color: text('primaryColor'),
         accent_color: text('accentColor'),
       })}>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <BrandAssetUpload
+            column="logo_path"
+            kind="logo"
+            label={t('admin.settings.fieldLogo')}
+            hint={t('admin.settings.fieldLogoHint')}
+            currentPath={settings.logo_path}
+            expectedVersion={settings.version}
+            onDone={(outcome) => {
+              setResult(outcome)
+              if (outcome.ok) router.refresh()
+            }}
+          />
+          <BrandAssetUpload
+            column="favicon_path"
+            kind="favicon"
+            label={t('admin.settings.fieldFavicon')}
+            hint={t('admin.settings.fieldFaviconHint')}
+            currentPath={settings.favicon_path}
+            expectedVersion={settings.version}
+            onDone={(outcome) => {
+              setResult(outcome)
+              if (outcome.ok) router.refresh()
+            }}
+          />
+          <BrandAssetUpload
+            column="default_og_image_path"
+            kind="og"
+            label={t('admin.settings.fieldOgImage')}
+            hint={t('admin.settings.fieldOgImageHint')}
+            currentPath={settings.default_og_image_path}
+            expectedVersion={settings.version}
+            onDone={(outcome) => {
+              setResult(outcome)
+              if (outcome.ok) router.refresh()
+            }}
+          />
+        </div>
         <ColorField
           id="primaryColor"
           label={t('admin.appearance.fieldPrimaryColor')}
@@ -453,3 +498,90 @@ function MaintenanceCard({ settings }: { settings: SettingsRow }) {
     </section>
   )
 }
+
+function BrandAssetUpload({
+  column,
+  kind,
+  label,
+  hint,
+  currentPath,
+  expectedVersion,
+  onDone,
+}: {
+  column: 'logo_path' | 'favicon_path' | 'default_og_image_path'
+  kind: 'logo' | 'favicon' | 'og'
+  label: string
+  hint: string
+  currentPath: string | null
+  expectedVersion: number
+  onDone: (outcome: SettingsResult) => void
+}) {
+  const [pending, startTransition] = useTransition()
+  const url = brandMediaUrl(currentPath)
+
+  return (
+    <div className="flex flex-col justify-between rounded-xl border border-line bg-surface-2 p-3">
+      <div>
+        <label htmlFor={`asset-${kind}`} className={LABEL}>
+          {label}
+        </label>
+        <p className={HINT}>{hint}</p>
+
+        {url ? (
+          <div className="mt-2.5 flex h-16 items-center justify-center overflow-hidden rounded-lg border border-line bg-ink p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt={label} className="max-h-full max-w-full object-contain" />
+          </div>
+        ) : (
+          <div className="mt-2.5 flex h-16 items-center justify-center rounded-lg border border-dashed border-line bg-ink/50 text-xs text-text-3">
+            ยังไม่มีรูป
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 space-y-2">
+        <input
+          id={`asset-${kind}`}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          disabled={pending}
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            if (!file) return
+            const fd = new FormData()
+            fd.set('column', column)
+            fd.set('kind', kind)
+            fd.set('expectedVersion', String(expectedVersion))
+            fd.set('file', file)
+            startTransition(async () => {
+              const res = await uploadBrandAssetAction({ ok: true, error: null }, fd)
+              onDone(
+                res.ok
+                  ? { ok: true, version: expectedVersion + 1 }
+                  : { ok: false, message: res.error ?? 'อัปโหลดไม่สำเร็จ' },
+              )
+              event.target.value = ''
+            })
+          }}
+          className="block w-full text-xs text-text-2 file:mr-2 file:min-h-9 file:cursor-pointer file:rounded-lg file:border file:border-line file:bg-surface file:px-2.5 file:text-xs file:font-medium file:text-text"
+        />
+        {currentPath ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => {
+              startTransition(async () => {
+                const res = await removeBrandAssetAction(column, expectedVersion)
+                onDone(res)
+              })
+            }}
+            className="min-h-9 w-full rounded-lg border border-danger/40 px-2.5 text-xs font-medium text-danger hover:bg-danger/10 focus-ring disabled:opacity-50"
+          >
+            {t('admin.common.delete')}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+

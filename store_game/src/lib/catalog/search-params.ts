@@ -34,7 +34,7 @@ const SLUG = /^[a-z0-9-]{1,80}$/
 export const catalogQueryShape = {
   q: z.string().trim().max(120).optional(),
   game: z.string().regex(SLUG).optional(),
-  status: z.enum(['available', 'sold']).optional(),
+  status: z.enum(['available', 'reserved', 'sold']).optional(),
   currency: z.enum(CURRENCIES).default('THB'),
   min: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
   max: z.coerce.number().int().min(0).max(1_000_000_000).optional(),

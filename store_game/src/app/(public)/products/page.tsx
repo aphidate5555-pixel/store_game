@@ -4,7 +4,7 @@ import { CatalogView } from '@/components/catalog/catalog-view'
 import { SiteHeader } from '@/components/site/header'
 import { SiteFooter } from '@/components/site/footer'
 import { ToastProvider } from '@/components/ui/toast'
-import { getProductList } from '@/lib/catalog/queries'
+import { getGameCards, getProductList } from '@/lib/catalog/queries'
 import { fetchSiteConfig } from '@/lib/settings/query'
 import { getMessages } from '@/lib/i18n'
 import { SITE_URL } from '@/lib/catalog/seo'
@@ -52,14 +52,18 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<RawSearchParams>
 }) {
-  const [sp, config] = await Promise.all([searchParams, fetchSiteConfig()])
+  const [sp, config, games] = await Promise.all([
+    searchParams,
+    fetchSiteConfig(),
+    getGameCards(48),
+  ])
   const result = await getProductList(sp)
 
   return (
     <ToastProvider>
       <SiteHeader settings={config.settings} sections={config.sections} />
       <main id="main">
-        <CatalogView result={result} />
+        <CatalogView result={result} games={games} store={config.settings} />
       </main>
       <SiteFooter settings={config.settings} sections={config.sections} />
     </ToastProvider>

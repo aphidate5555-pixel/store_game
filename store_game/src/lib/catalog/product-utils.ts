@@ -40,3 +40,10 @@ export interface GameCard {
   readonly image_path: string | null
   readonly available_count: number
 }
+
+export interface EnrichedProduct extends ProductRow {
+  readonly cover?: ProductImageRow | null
+  readonly image_count?: number
+  readonly game_name?: string | null
+  readonly game_slug?: string | null
+}

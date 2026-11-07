@@ -37,7 +37,7 @@ export const SITE_DEFAULTS = {
     title: 'ไอดีเกมพร้อมเล่น',
     subtitle: 'เลือกไอดีเกมที่ใช่สำหรับคุณ สแกนครบ ส่งมอบเร็ว พร้อมให้บริการทุกวัน',
     cta_text: 'ดูไอดีทั้งหมด',
-    cta_route: 'games',
+    cta_route: 'products',
   },
   trust: {
     enabled: true,

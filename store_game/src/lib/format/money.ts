@@ -37,6 +37,48 @@ export function formatPrice(price: bigint | number, currency: Currency): string 
   return `${unit.prefix}${groupDigits(price)}${unit.suffix}`
 }
 
+/**
+ * Formats a price with its explicit ISO currency code for dual-currency cards
+ * (e.g. `1,399,000 LAK` or `2,300 THB`) without any currency conversion.
+ */
+export function formatCodePrice(price: bigint | number, currency: Currency): string {
+  return `${groupDigits(price)} ${currency}`
+}
+
+export interface DualPriceSource {
+  readonly price_amount: number
+  readonly currency: Currency
+  readonly price_thb?: number | null
+  readonly price_lak?: number | null
+}
+
+export interface DualPrices {
+  readonly thb: number | null
+  readonly lak: number | null
+}
+
+/**
+ * Resolves the independent THB and LAK prices stored on a product row.
+ * Never performs automatic conversion between currencies.
+ */
+export function getProductPrices(product: DualPriceSource): DualPrices {
+  const thb =
+    typeof product.price_thb === 'number' && Number.isFinite(product.price_thb)
+      ? product.price_thb
+      : product.currency === 'THB'
+        ? product.price_amount
+        : null
+
+  const lak =
+    typeof product.price_lak === 'number' && Number.isFinite(product.price_lak)
+      ? product.price_lak
+      : product.currency === 'LAK'
+        ? product.price_amount
+        : null
+
+  return { thb, lak }
+}
+
 /** The unformatted numeric value, for places that must not carry a separator:
  *  JSON-LD offers, meta tags, and any machine-read field. */
 export function priceValue(price: bigint | number): string {

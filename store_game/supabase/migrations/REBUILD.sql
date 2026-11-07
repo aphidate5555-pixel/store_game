@@ -587,39 +587,48 @@ stable
 security invoker
 set search_path = public
 as $$
-  with filtered as (
-    select p.*
+  with priced as (
+    select
+      p as product_row,
+      p.created_at,
+      p.product_code,
+      case
+        when p_currency = 'THB' then coalesce(p.price_thb, case when p.currency = 'THB' then p.price_amount end)
+        when p_currency = 'LAK' then coalesce(p.price_lak, case when p.currency = 'LAK' then p.price_amount end)
+        else p.price_amount
+      end as effective_price
     from public.products p
     join public.games g on g.id = p.game_id
     where p.is_visible
       and g.is_enabled
-      and p.currency = p_currency
       and (p_status is null or p.status = p_status)
-      and (p_min is null or p.price_amount >= p_min)
-      and (p_max is null or p.price_amount <= p_max)
       and (p_game_slug is null or g.slug = p_game_slug)
       and (
         p_pattern is null
         or p.search_text ilike ('%' || p_pattern || '%') escape '!'
       )
   ),
+  filtered as (
+    select pr.*
+    from priced pr
+    where pr.effective_price is not null
+      and (p_min is null or pr.effective_price >= p_min)
+      and (p_max is null or pr.effective_price <= p_max)
+  ),
   paged as (
-    select f.*
+    select f.product_row
     from filtered f
     order by
-      case when p_sort = 'price_asc'  then f.price_amount end asc nulls last,
-      case when p_sort = 'price_desc' then f.price_amount end desc nulls last,
-      case when p_sort = 'oldest'     then f.created_at   end asc nulls last,
+      case when p_sort = 'price_asc'  then f.effective_price end asc nulls last,
+      case when p_sort = 'price_desc' then f.effective_price end desc nulls last,
+      case when p_sort = 'oldest'     then f.created_at      end asc nulls last,
       f.created_at desc,
       f.product_code asc
     limit least(greatest(coalesce(p_limit, 24), 1), 100)
     offset greatest(coalesce(p_offset, 0), 0)
   )
   select
-    coalesce(
-      (select array_agg(row(pg.*)::public.products) from paged pg),
-      '{}'::public.products[]
-    ),
+    coalesce((select array_agg(pg.product_row) from paged pg), '{}'::public.products[]),
     (select count(*) from filtered);
 $$;
 

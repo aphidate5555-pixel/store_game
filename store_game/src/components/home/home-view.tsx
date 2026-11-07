@@ -40,7 +40,7 @@ export async function HomeView({ variant = SHIPPED_VARIANT }: { variant?: Varian
 
       <main id="main">
         {isSectionEnabled(sections, 'hero') ? (
-          <Hero sections={sections} variant={variant} />
+          <Hero sections={sections} variant={variant} settings={settings} />
         ) : null}
 
         {isSectionEnabled(sections, 'trust') ? <TrustBar sections={sections} /> : null}
@@ -50,11 +50,16 @@ export async function HomeView({ variant = SHIPPED_VARIANT }: { variant?: Varian
         ) : null}
 
         {isSectionEnabled(sections, 'featured_products') ? (
-          <FeaturedProducts products={home.featured} sections={sections} variant={variant} />
+          <FeaturedProducts
+            products={home.featured}
+            sections={sections}
+            variant={variant}
+            store={settings}
+          />
         ) : null}
 
         {isSectionEnabled(sections, 'all_products') ? (
-          <AllProducts products={home.latest} sections={sections} />
+          <AllProducts products={home.latest} sections={sections} store={settings} />
         ) : null}
 
         <WhatsAppCta store={settings} />

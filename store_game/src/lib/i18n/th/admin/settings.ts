@@ -87,6 +87,10 @@ export const adminTh = {
 
   'admin.settings.saveSuccess': 'บันทึกการตั้งค่าเรียบร้อยแล้ว',
   'admin.settings.unsavedChanges': 'มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก',
+  'admin.settings.assetUpload': 'อัปโหลดรูปภาพ',
+  'admin.settings.assetReplace': 'เปลี่ยนรูปภาพ',
   'admin.settings.assetRemove': 'ลบรูปนี้',
   'admin.settings.assetRemoveConfirm': 'ลบรูปนี้? รูปจะถูกใช้งานทันทีทั้งเว็บไซต์',
+  'admin.settings.assetUploadSuccess': 'อัปโหลดรูปแบรนด์เรียบร้อยแล้ว',
+  'admin.settings.assetRemoveSuccess': 'ลบรูปแบรนด์เรียบร้อยแล้ว',
 } as const

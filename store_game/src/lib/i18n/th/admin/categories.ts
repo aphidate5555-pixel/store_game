@@ -14,9 +14,14 @@ export const adminTh = {
     'ใช้เป็นส่วนหนึ่งของ URL หน้าหมวดหมู่ ใช้ได้เฉพาะตัวอักษรอังกฤษตัวเล็ก ตัวเลข และขีดกลาง เช่น mobile-legends',
   'admin.categories.fieldDescription': 'รายละเอียด',
   'admin.categories.fieldDescriptionHint': 'คำอธิบายสั้น ๆ เกี่ยวกับเกมในหมวดนี้',
-  'admin.categories.fieldImage': 'รูปภาพหมวดหมู่',
+  'admin.categories.fieldImage': 'รูปปกหมวดหมู่เกม',
   'admin.categories.fieldImageHint':
-    'แนะนำภาพแนวนอนหรือแนวกว้าง ขนาด 1200×675 พิกเซล ระบบจะย่อขนาดให้อัตโนมัติ',
+    'แนะนำภาพแนวนอนหรือแนวกว้าง ขนาด 1200×675 พิกเซล (PNG, JPG, WebP ไม่เกิน 3.5 MB) หากไม่อัปโหลดจะแสดงภาพปกเกมมาตรฐาน',
+  'admin.categories.imageUpload': 'อัปโหลดรูปปกเกม',
+  'admin.categories.imageReplace': 'เปลี่ยนรูปปกเกม',
+  'admin.categories.imageRemove': 'ลบรูปปกเกม',
+  'admin.categories.imageUploaded': 'อัปโหลดรูปปกหมวดหมู่เรียบร้อยแล้ว',
+  'admin.categories.imageRemoved': 'ลบรูปปกหมวดหมู่เรียบร้อยแล้ว',
   'admin.categories.fieldEnabled': 'เปิดใช้งาน',
   'admin.categories.fieldEnabledHint':
     'ปิดไว้ หมวดหมู่จะไม่แสดงบนหน้าแรกและเมนู แต่หน้า URL เดิมยังเข้าถึงได้',

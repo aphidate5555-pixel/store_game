@@ -13,10 +13,12 @@ exception when duplicate_object then
 end $$;
 
 do $$ begin
-  create type public.product_status as enum ('available', 'sold');
+  create type public.product_status as enum ('available', 'reserved', 'sold');
 exception when duplicate_object then
   raise notice 'product_status มีอยู่แล้ว';
 end $$;
+
+alter type public.product_status add value if not exists 'reserved';
 
 do $$ begin
   create type public.product_binding as enum ('bound', 'unbound');

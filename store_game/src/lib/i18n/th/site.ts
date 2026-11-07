@@ -33,17 +33,22 @@ export const th = {
 
   hero: {
     badge: 'พร้อมเล่นทันที',
-    secondaryCta: 'ค้นหาสินค้า',
+    secondaryCta: 'ติดต่อร้าน',
+    searchCta: 'ค้นหาสินค้า',
     title: 'ดูไอดีทั้งหมด',
     subtitle: 'คัดลอกรหัสสินค้าแล้วทักมาทาง WhatsApp ส่งมอบไว',
+    fallbackAlt: 'ภาพโปรโมตร้านไอดีเกม',
   },
 
 
   categories: {
     heading: 'เลือกตามเกม',
+    subtitle: 'เลือกหมวดหมู่เกมที่ต้องการเพื่อดูไอดีพร้อมขายทันที',
     emptyTitle: 'ยังไม่มีหมวดหมู่เกม',
     emptyBody: 'ร้านกำลังเพิ่มหมวดหมู่อยู่ กรุณากลับมาเยือนอีกครั้งเร็ว ๆ นี้',
     productCount: (count: number) => `พร้อมขาย ${count} รายการ`,
+    viewCategory: 'ดูไอดีในหมวดนี้',
+    statusActive: 'เปิดให้บริการ',
   },
 
   featured: {
@@ -79,10 +84,11 @@ export const th = {
     status: 'สถานะ',
     allStatuses: 'ทุกสถานะ',
     statusAvailable: 'พร้อมขาย',
+    statusReserved: 'ติดจอง',
     statusSold: 'ขายแล้ว',
     currency: 'สกุลเงิน',
     currencyThb: 'บาท (THB)',
-    currencyLak: 'ลาว (LAK)',
+    currencyLak: 'กีบ (LAK)',
     priceRange: 'ช่วงราคา',
     minPrice: 'ราคาต่ำสุด',
     maxPrice: 'ราคาสูงสุด',
@@ -115,22 +121,37 @@ export const th = {
     bindingBound: 'ผูกบัญชี',
     bindingUnbound: 'ไม่ผูกบัญชี',
     price: 'ราคา',
+    priceThb: 'ราคาเงินบาท (THB)',
+    priceLak: 'ราคาเงินกีบ (LAK)',
+    priceNotSet: 'สอบถามราคา',
     status: 'สถานะ',
-    description: 'รายละเอียด',
+    description: 'รายละเอียดไอดีเกม',
+    specsHeading: 'ข้อมูลสำคัญของไอดี',
     gallery: 'รูปภาพสินค้า',
     galleryImage: (index: number) => `รูปที่ ${index}`,
+    noImage: 'ยังไม่มีรูปภาพประกอบ',
     related: 'สินค้าอื่นในเกมนี้',
     relatedEmpty: 'ยังไม่มีสินค้าอื่นในเกมนี้',
     notFoundTitle: 'ไม่พบสินค้านี้',
     notFoundBody: 'สินค้าที่คุณค้นหาอาจถูกนำออกจากร้านแล้ว ลองเลือกสินค้าจากหน้าไอดีเกมทั้งหมดอีกครั้ง',
     notFoundCta: 'ดูไอดีเกมทั้งหมด',
     soldNotice: 'สินค้านี้ขายแล้ว',
-    soldHint: 'เลือกดูสินค้าอื่นในเกมเดียวกันด้านล่าง',
+    soldHint: 'รายการนี้ถูกสั่งซื้อไปแล้ว ไม่สามารถสั่งซื้อซ้ำได้ กรุณาเลือกดูสินค้าอื่นในเกมเดียวกันด้านล่าง',
+    reservedNotice: 'สินค้านี้ติดจองชั่วคราว',
+    reservedHint: 'ขณะนี้มีลูกค้ากำลังดำเนินการสั่งซื้อ หากสนใจสามารถทักสอบถามคิวสำรองผ่าน WhatsApp ได้',
+    whatsappOrder: 'ติดต่อซื้อผ่าน WhatsApp',
+    termsHeading: 'เงื่อนไขการซื้อและการรับประกัน',
+    termsItem1: 'ตรวจสอบรายละเอียด รูปภาพ และรหัสสินค้าให้ครบถ้วนก่อนกดสั่งซื้อผ่าน WhatsApp',
+    termsItem2: 'ชำระเงินและรับข้อมูลไอดีโดยตรงกับแอดมินร้านผ่านช่องทางทางการของร้านเท่านั้น',
+    termsItem3: 'หลังจากรับไอดีแล้ว กรุณาเปลี่ยนรหัสผ่านและตรวจสอบการผูกบัญชีทันที',
+    termsItem4: 'รับประกันข้อมูลไอดีตรงตามรายละเอียดที่ระบุในรหัสสินค้า มีทีมงานดูแลหลังการขาย',
   },
 
   gallery: {
     open: 'เปิดดูรูปขนาดใหญ่',
     close: 'ปิดรูป',
+    prev: 'รูปก่อนหน้า',
+    next: 'รูปถัดไป',
     counter: (current: number, total: number) => `${current} / ${total}`,
   },
 
@@ -190,8 +211,10 @@ export const th = {
 
   status: {
     available: 'พร้อมขาย',
+    reserved: 'ติดจอง',
     sold: 'ขายแล้ว',
     availableAria: 'สถานะ: พร้อมขาย',
+    reservedAria: 'สถานะ: ติดจอง',
     soldAria: 'สถานะ: ขายแล้ว',
   },
 } as const

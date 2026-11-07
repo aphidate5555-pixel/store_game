@@ -36,35 +36,38 @@ with seeded as (
   select
     'ML-20481'::text   as code, 'ไอดีเกม ML-20481 ฮีโร่ระดับเทพ'::text as name,
     'mobile-legends'::text as slug, 1250::bigint as price, 'THB'::public.product_currency as cur,
+    1250::bigint as p_thb, 790000::bigint as p_lak,
     'Mythic'::text as rank, 42 as heroes, 8 as skins, 'available'::public.product_status as st
-  union all select 'ML-30512', 'ไอดีเกม ML-30512 ชุดสกินพิเศษ', 'mobile-legends', 890, 'THB', 'Legend', 60, 15, 'available'
-  union all select 'ML-41002', 'ไอดีเกม ML-41002 แพ็กครบฮีโร่', 'mobile-legends', 4500, 'THB', 'Epic', 120, 40, 'sold'
-  union all select 'ML-51877', 'ไอดีเกม ML-51877 ราคาประหยัด', 'mobile-legends', 250, 'THB', null, 12, 2, 'available'
-  union all select 'FF-10023', 'ไอดีเกม FF-10023 ระดับเพชร', 'free-fire', 750, 'THB', 'Heroic', 35, 6, 'available'
-  union all select 'FF-20045', 'ไอดีเกม FF-20045 ชุดกำลังพล', 'free-fire', 320, 'THB', 'Epic', 20, 3, 'available'
-  union all select 'FF-30099', 'ไอดีเกม FF-30099 เต็มอุปกรณ์', 'free-fire', 1980, 'THB', 'Heroic', 55, 18, 'available'
-  union all select 'ROV-1001', 'ไอดีเกม ROV-1001 ฮีโร่ครบ', 'rov', 600, 'THB', 'Legend', 48, 11, 'available'
-  union all select 'ROV-2050', 'ไอดีเกม ROV-2050 สกินหายาก', 'rov', 1500, 'THB', 'Mythic', 30, 25, 'available'
-  union all select 'ROV-3110', 'ไอดีเกม ROV-3110 ชุดเริ่มต้น', 'rov', 180, 'THB', null, 8, 1, 'available'
-  union all select 'PB-1001', 'ไอดีเกม PB-1001 ระดับทอง', 'pubg-mobile', 2200, 'THB', 'Epic', 40, 9, 'available'
-  union all select 'PB-2020', 'ไอดีเกม PB-2020 เสื้อผ้าพิเศษ', 'pubg-mobile', 980, 'THB', 'Legend', 25, 14, 'available'
-  union all select 'PB-3030', 'ไอดีเกม PB-3030 ปืนพิเศษ', 'pubg-mobile', 3400, 'THB', 'Mythic', 33, 22, 'sold'
+  union all select 'ML-30512', 'ไอดีเกม ML-30512 ชุดสกินพิเศษ', 'mobile-legends', 890, 'THB', 890, 560000, 'Legend', 60, 15, 'available'
+  union all select 'ML-41002', 'ไอดีเกม ML-41002 แพ็กครบฮีโร่', 'mobile-legends', 4500, 'THB', 4500, 2850000, 'Epic', 120, 40, 'sold'
+  union all select 'ML-51877', 'ไอดีเกม ML-51877 ราคาประหยัด', 'mobile-legends', 250, 'THB', 250, 160000, null, 12, 2, 'available'
+  union all select 'FF-10023', 'ไอดีเกม FF-10023 ระดับเพชร', 'free-fire', 750, 'THB', 750, 475000, 'Heroic', 35, 6, 'available'
+  union all select 'FF-20045', 'ไอดีเกม FF-20045 ชุดกำลังพล', 'free-fire', 320, 'THB', 320, 200000, 'Epic', 20, 3, 'available'
+  union all select 'FF-30099', 'ไอดีเกม FF-30099 เต็มอุปกรณ์', 'free-fire', 1980, 'THB', 1980, 1250000, 'Heroic', 55, 18, 'available'
+  union all select 'ROV-1001', 'ไอดีเกม ROV-1001 ฮีโร่ครบ', 'rov', 600, 'THB', 600, 380000, 'Legend', 48, 11, 'available'
+  union all select 'ROV-2050', 'ไอดีเกม ROV-2050 สกินหายาก', 'rov', 1500, 'THB', 1500, 950000, 'Mythic', 30, 25, 'available'
+  union all select 'ROV-3110', 'ไอดีเกม ROV-3110 ชุดเริ่มต้น', 'rov', 180, 'THB', 180, 115000, null, 8, 1, 'available'
+  union all select 'PB-1001', 'ไอดีเกม PB-1001 ระดับทอง', 'pubg-mobile', 2200, 'THB', 2200, 1399000, 'Epic', 40, 9, 'available'
+  union all select 'PB-2020', 'ไอดีเกม PB-2020 เสื้อผ้าพิเศษ', 'pubg-mobile', 980, 'THB', 980, 620000, 'Legend', 25, 14, 'available'
+  union all select 'PB-3030', 'ไอดีเกม PB-3030 ปืนพิเศษ', 'pubg-mobile', 3400, 'THB', 3400, 2150000, 'Mythic', 33, 22, 'sold'
   -- Lao kip, so the currency facet has real data behind it. The names stay
   -- Thai: the storefront is Thai-only (acceptance check 11) and a Lao
   -- product name would fail the "no Lao characters anywhere" e2e assertion.
-  union all select 'LA-90001', 'ไอดีเกม LA-90001 ระดับเทพ', 'mobile-legends', 250000, 'LAK', 'Legend', 15, 4, 'available'
-  union all select 'LA-90002', 'ไอดีเกม LA-90002 ชุดพิเศษ', 'free-fire', 180000, 'LAK', 'Epic', 22, 7, 'available'
+  union all select 'LA-90001', 'ไอดีเกม LA-90001 ระดับเทพ', 'mobile-legends', 250000, 'LAK', 400, 250000, 'Legend', 15, 4, 'available'
+  union all select 'LA-90002', 'ไอดีเกม LA-90002 ชุดพิเศษ', 'free-fire', 180000, 'LAK', 290, 180000, 'Epic', 22, 7, 'available'
 )
 insert into public.products (
-  product_code, name, game_id, price_amount, currency, rank,
+  product_code, name, game_id, price_amount, currency, price_thb, price_lak, rank,
   hero_count, skin_count, status, is_visible
 )
 select
-  s.code, s.name, g.id, s.price, s.cur, s.rank,
+  s.code, s.name, g.id, s.price, s.cur, s.p_thb, s.p_lak, s.rank,
   s.heroes, s.skins, s.st, true
 from seeded s
 join public.games g on g.slug = s.slug
-on conflict (product_code) do nothing;
+on conflict (product_code) do update
+  set price_thb = excluded.price_thb,
+      price_lak = excluded.price_lak;
 
 -- ===========================================================================
 -- A hidden product, so the "is_visible = false means noindex" path is real

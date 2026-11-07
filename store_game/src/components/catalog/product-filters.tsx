@@ -5,7 +5,14 @@ import { SlidersHorizontal } from 'lucide-react'
 
 import { BottomSheet } from '@/components/ui/bottom-sheet'
 import { getMessages } from '@/lib/i18n'
-import { buildCatalogHref, CURRENCIES, SORT_KEYS, type CatalogQueryInput } from '@/lib/catalog/search-params'
+import type { GameCard } from '@/lib/catalog/product-utils'
+import {
+  buildCatalogHref,
+  buildCurrencyHref,
+  CURRENCIES,
+  SORT_KEYS,
+  type CatalogQueryInput,
+} from '@/lib/catalog/search-params'
 
 type FilterKey = keyof ReturnType<typeof getMessages>['filter']
 
@@ -21,14 +28,6 @@ const CURRENCY_LABEL: Record<(typeof CURRENCIES)[number], TextFilterKey> = {
   LAK: 'currencyLak',
 }
 
-/**
- * Reads a label that is known to be a string.
- *
- * The filter group also holds functions (openWithCount), so indexing it with
- * a key union widens to `string | fn`. Narrowing here keeps the call sites
- * free of casts and turns a wrong key into a compile error above rather than
- * a function rendered into the DOM.
- */
 type TextFilterKey = {
   [K in FilterKey]: ReturnType<typeof getMessages>['filter'][K] extends (...args: never[]) => string
     ? never
@@ -48,15 +47,18 @@ function filterText(messages: ReturnType<typeof getMessages>, key: TextFilterKey
  */
 export function ProductFilters({
   query,
+  games = [],
   onNavigate,
 }: {
   query: CatalogQueryInput
+  games?: readonly GameCard[]
   onNavigate: (href: string) => void
 }) {
   const m = getMessages()
   const [open, setOpen] = useState(false)
 
   const activeCount =
+    (query.q ? 1 : 0) +
     (query.game ? 1 : 0) +
     (query.status ? 1 : 0) +
     (query.min !== undefined ? 1 : 0) +
@@ -64,25 +66,75 @@ export function ProductFilters({
     (query.sort !== 'newest' ? 1 : 0) +
     (query.currency !== 'THB' ? 1 : 0)
 
+  const statusLabel = (status: 'available' | 'reserved' | 'sold') => {
+    if (status === 'available') return m.filter.statusAvailable
+    if (status === 'reserved') return m.filter.statusReserved
+    return m.filter.statusSold
+  }
+
   const panel = (
-    <div className="space-y-5">
+    <div className="space-y-5 rounded-2xl border border-line bg-surface p-4">
+      {games.length > 0 ? (
+        <fieldset>
+          <legend className="text-sm font-semibold text-text">{m.filter.game}</legend>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              aria-pressed={!query.game}
+              onClick={() => onNavigate(buildCatalogHref(query, { game: undefined, page: 1 }))}
+              className={[
+                'min-h-10 rounded-lg border px-3 text-xs font-medium focus-ring',
+                !query.game
+                  ? 'border-primary bg-primary/15 text-primary'
+                  : 'border-line bg-surface-2 text-text-2 hover:border-line-ctl',
+              ].join(' ')}
+            >
+              {m.filter.allGames}
+            </button>
+            {games.map((g) => (
+              <button
+                key={g.slug}
+                type="button"
+                aria-pressed={query.game === g.slug}
+                onClick={() =>
+                  onNavigate(
+                    buildCatalogHref(query, {
+                      game: query.game === g.slug ? undefined : g.slug,
+                      page: 1,
+                    }),
+                  )
+                }
+                className={[
+                  'min-h-10 rounded-lg border px-3 text-xs font-medium focus-ring',
+                  query.game === g.slug
+                    ? 'border-primary bg-primary/15 text-primary'
+                    : 'border-line bg-surface-2 text-text-2 hover:border-line-ctl',
+                ].join(' ')}
+              >
+                {g.name}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
+
       <fieldset>
-        <legend className="text-sm font-medium text-text-2">{m.filter.currency}</legend>
+        <legend className="text-sm font-semibold text-text">{m.filter.currency}</legend>
         <div className="mt-2 flex flex-wrap gap-2">
           {CURRENCIES.map((currency) => (
             <button
               key={currency}
               type="button"
               aria-pressed={query.currency === currency}
-              onClick={() => onNavigate(buildCatalogHref(query, { currency, page: 1 }))}
+              onClick={() => onNavigate(buildCurrencyHref(query, currency))}
               className={[
-                'min-h-11 rounded-lg border px-3 text-sm focus-ring',
+                'min-h-10 flex-1 rounded-lg border px-3 text-sm font-medium focus-ring',
                 query.currency === currency
-                  ? 'border-primary bg-primary/12 text-primary'
+                  ? 'border-primary bg-primary/15 text-primary'
                   : 'border-line bg-surface-2 text-text-2 hover:border-line-ctl',
               ].join(' ')}
             >
-              {m.filter.currencyThb === '' ? '' : filterText(m, CURRENCY_LABEL[currency])}
+              {filterText(m, CURRENCY_LABEL[currency])}
             </button>
           ))}
         </div>
@@ -90,33 +142,41 @@ export function ProductFilters({
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-medium text-text-2">{m.filter.status}</legend>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {(['available', 'sold'] as const).map((status) => (
+        <legend className="text-sm font-semibold text-text">{m.filter.status}</legend>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {(['available', 'reserved', 'sold'] as const).map((status) => (
             <button
               key={status}
               type="button"
               aria-pressed={query.status === status}
               onClick={() =>
-                onNavigate(buildCatalogHref(query, { status: query.status === status ? undefined : status, page: 1 }))
+                onNavigate(
+                  buildCatalogHref(query, {
+                    status: query.status === status ? undefined : status,
+                    page: 1,
+                  }),
+                )
               }
               className={[
-                'min-h-11 rounded-lg border px-3 text-sm focus-ring',
+                'min-h-10 rounded-lg border px-3 text-xs font-medium focus-ring',
                 query.status === status
-                  ? 'border-primary bg-primary/12 text-primary'
+                  ? 'border-primary bg-primary/15 text-primary'
                   : 'border-line bg-surface-2 text-text-2 hover:border-line-ctl',
               ].join(' ')}
             >
-              {status === 'available' ? m.filter.statusAvailable : m.filter.statusSold}
+              {statusLabel(status)}
             </button>
           ))}
         </div>
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-medium text-text-2">{m.filter.priceRange}</legend>
+        <legend className="text-sm font-semibold text-text">
+          {m.filter.priceRange} ({query.currency})
+        </legend>
         <div className="mt-2 flex items-center gap-2">
           <input
+            key={`min-${query.currency}-${query.min ?? ''}`}
             type="number"
             inputMode="numeric"
             min={0}
@@ -128,12 +188,13 @@ export function ProductFilters({
               const value = raw === '' ? undefined : Number(raw)
               onNavigate(buildCatalogHref(query, { min: value, page: 1 }))
             }}
-            className="min-h-11 w-full rounded-lg border border-line bg-surface-2 px-3 text-base text-text focus-ring"
+            className="min-h-10 w-full rounded-lg border border-line bg-surface-2 px-3 text-sm text-text focus-ring"
           />
           <span aria-hidden="true" className="text-text-3">
             –
           </span>
           <input
+            key={`max-${query.currency}-${query.max ?? ''}`}
             type="number"
             inputMode="numeric"
             min={0}
@@ -145,14 +206,14 @@ export function ProductFilters({
               const value = raw === '' ? undefined : Number(raw)
               onNavigate(buildCatalogHref(query, { max: value, page: 1 }))
             }}
-            className="min-h-11 w-full rounded-lg border border-line bg-surface-2 px-3 text-base text-text focus-ring"
+            className="min-h-10 w-full rounded-lg border border-line bg-surface-2 px-3 text-sm text-text focus-ring"
           />
         </div>
       </fieldset>
 
       <fieldset>
-        <legend className="text-sm font-medium text-text-2">{m.filter.sort}</legend>
-        <div className="mt-2 flex flex-wrap gap-2">
+        <legend className="text-sm font-semibold text-text">{m.filter.sort}</legend>
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
           {SORT_KEYS.map((sort) => (
             <button
               key={sort}
@@ -160,9 +221,9 @@ export function ProductFilters({
               aria-pressed={query.sort === sort}
               onClick={() => onNavigate(buildCatalogHref(query, { sort, page: 1 }))}
               className={[
-                'min-h-11 rounded-lg border px-3 text-sm focus-ring',
+                'min-h-10 rounded-lg border px-2.5 text-xs font-medium focus-ring',
                 query.sort === sort
-                  ? 'border-primary bg-primary/12 text-primary'
+                  ? 'border-primary bg-primary/15 text-primary'
                   : 'border-line bg-surface-2 text-text-2 hover:border-line-ctl',
               ].join(' ')}
             >
@@ -176,7 +237,7 @@ export function ProductFilters({
         <button
           type="button"
           onClick={() => onNavigate('/products')}
-          className="min-h-11 w-full rounded-lg border border-line bg-surface-2 px-3 text-sm text-text hover:border-line-ctl focus-ring"
+          className="min-h-10 w-full rounded-lg border border-primary/40 bg-primary/10 px-3 text-xs font-semibold text-primary hover:bg-primary/20 focus-ring"
         >
           {m.filter.clear}
         </button>
@@ -197,7 +258,7 @@ export function ProductFilters({
           onClick={() => setOpen(true)}
           aria-expanded={open}
           aria-controls="filter-sheet"
-          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-line bg-surface-2 px-4 text-sm text-text focus-ring"
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-medium text-text focus-ring"
         >
           <SlidersHorizontal size={16} aria-hidden="true" />
           {activeCount > 0 ? m.filter.openWithCount(activeCount) : m.filter.open}

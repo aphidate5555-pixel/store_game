@@ -23,6 +23,8 @@ create table if not exists public.products (
 
   price_amount  bigint not null,
   currency      public.product_currency not null default 'THB',
+  price_thb     bigint,
+  price_lak     bigint,
   rank          text,
   hero_count    integer not null default 0,
   skin_count    integer not null default 0,
@@ -42,6 +44,8 @@ create table if not exists public.products (
   constraint products_code_format check (product_code ~ '^[A-Za-z0-9][A-Za-z0-9-]{1,31}$'),
   constraint products_name_length  check (char_length(name) between 1 and 120),
   constraint products_price_non_negative check (price_amount >= 0),
+  constraint products_price_thb_non_negative check (price_thb is null or price_thb >= 0),
+  constraint products_price_lak_non_negative check (price_lak is null or (price_lak >= 0 and price_lak = trunc(price_lak))),
   -- The kip has no subunit in practice, so a fractional value is a data entry
   -- error rather than a price.
   constraint products_lak_integer check (
@@ -54,6 +58,10 @@ create table if not exists public.products (
     description is null or char_length(description) <= 2000
   )
 );
+
+alter table public.products
+  add column if not exists price_thb bigint,
+  add column if not exists price_lak bigint;
 
 comment on table public.products is
   'ไม่มี cover column — ปกคือ product_images.position = 0 (F-05)';

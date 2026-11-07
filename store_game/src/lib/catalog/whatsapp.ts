@@ -25,13 +25,20 @@ export function whatsappBaseUrl(store: WhatsAppStore): string | null {
   return `https://wa.me/${store.whatsapp_number}`
 }
 
-/** Deep link that pre-fills the greeting text. */
-export function waProductUrl(store: WhatsAppStore, productCode: string): string | null {
+/** Deep link that pre-fills the greeting text with product code (and name when provided). */
+export function waProductUrl(
+  store: WhatsAppStore,
+  productCode: string,
+  productName?: string,
+): string | null {
   const base = whatsappBaseUrl(store)
   if (!base) return null
   const code = productCode.trim()
   if (code.length === 0) return null
-  const text = `สนใจไอดีเกมรหัส ${code} ครับ/ค่ะ`
+  const cleanName = productName?.trim()
+  const text = cleanName
+    ? `สนใจไอดีเกม ${cleanName} (รหัส ${code}) ครับ/ค่ะ`
+    : `สนใจไอดีเกมรหัส ${code} ครับ/ค่ะ`
   return `${base}?text=${encodeURIComponent(text)}`
 }
 
@@ -41,8 +48,12 @@ export function waProductUrl(store: WhatsAppStore, productCode: string): string 
  * a link the administrator typed that failed validation must never become a
  * live anchor.
  */
-export function safeWhatsAppUrl(store: WhatsAppStore, productCode: string): string | null {
-  const url = waProductUrl(store, productCode)
+export function safeWhatsAppUrl(
+  store: WhatsAppStore,
+  productCode: string,
+  productName?: string,
+): string | null {
+  const url = waProductUrl(store, productCode, productName)
   if (!url) return null
   return safeExternal(url)
 }

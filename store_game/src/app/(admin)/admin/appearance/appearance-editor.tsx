@@ -4,10 +4,19 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard'
-import { saveSectionAction, toggleSectionAction, type AppearanceResult } from './actions'
+import {
+  saveSectionAction,
+  toggleSectionAction,
+  uploadHeroBannerAction,
+  removeHeroBannerAction,
+  type AppearanceResult,
+} from './actions'
 import { t, type MessageKey } from '@/lib/i18n/th/admin'
+import { SITE_DEFAULTS } from '@/lib/i18n/th/defaults'
 import { ROUTE_KEYS, ROUTES, type RouteKey } from '@/lib/validation/route-keys'
 import { sectionPayload } from '@/lib/catalog/site-content'
+import { brandMediaUrl } from '@/lib/storage/media-url'
+import { ImageWithFallback, HeroArtworkFallback } from '@/components/ui/image-with-fallback'
 import type { Database } from '@/lib/database.types'
 
 type SectionRow = Database['public']['Tables']['site_sections']['Row']
@@ -38,9 +47,7 @@ const SECTION_LABELS = {
  *
  * Each section is a card with its own save, so a validation failure in one
  * does not discard work in another. The live preview sits below and shows
- * the values currently in the form, not the values on the server — the copy
- * says so explicitly, because an administrator who edits a colour and does
- * not see it change assumes the save failed.
+ * the values currently stored on the server.
  */
 export function AppearanceEditor({ sections }: { sections: readonly SectionRow[] }) {
   const router = useRouter()
@@ -92,7 +99,7 @@ export function AppearanceEditor({ sections }: { sections: readonly SectionRow[]
         const payload = sectionPayload(sections, key)
         const enabled = payload.enabled !== false
         return (
-          <section key={key} className="rounded-xl border border-line bg-surface p-4">
+          <section key={key} className="rounded-xl border border-line bg-surface p-4 sm:p-5">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-base font-semibold text-text">{t(labelKey)}</h2>
               <button
@@ -111,7 +118,16 @@ export function AppearanceEditor({ sections }: { sections: readonly SectionRow[]
             ) : null}
 
             <div className="space-y-4">
-              {key === 'hero' ? <HeroCard payload={payload} onSave={save} /> : null}
+              {key === 'hero' ? (
+                <HeroCard
+                  payload={payload}
+                  onSave={save}
+                  onBannerResult={(outcome) => {
+                    setResult(outcome)
+                    if (outcome.ok) router.refresh()
+                  }}
+                />
+              ) : null}
               {key === 'trust' ? <TrustCard payload={payload} onSave={save} /> : null}
               {key === 'categories' ? <CategoriesCard payload={payload} onSave={save} /> : null}
               {key === 'featured_products' ? <FeaturedCard payload={payload} onSave={save} /> : null}
@@ -119,15 +135,6 @@ export function AppearanceEditor({ sections }: { sections: readonly SectionRow[]
               {key === 'navigation' ? <NavigationCard payload={payload} onSave={save} /> : null}
               {key === 'footer' ? <FooterCard payload={payload} onSave={save} /> : null}
             </div>
-
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => save(key, {})}
-              className="mt-4 min-h-11 w-full rounded-lg bg-primary text-sm font-medium text-on-primary hover:brightness-95 focus-ring disabled:opacity-60"
-            >
-              {pending ? t('errors.save.saving') : t('admin.common.save')}
-            </button>
           </section>
         )
       })}
@@ -142,16 +149,91 @@ export function AppearanceEditor({ sections }: { sections: readonly SectionRow[]
 type Payload = Record<string, unknown>
 type Saver = (sectionKey: string, patch: unknown) => void
 
-function HeroCard({ payload, onSave }: { payload: Payload; onSave: Saver }) {
-  const [title, setTitle] = useState(String(payload.title ?? ''))
-  const [subtitle, setSubtitle] = useState(String(payload.subtitle ?? ''))
-  const [ctaText, setCtaText] = useState(String(payload.cta_text ?? ''))
-  const [ctaRoute, setCtaRoute] = useState<RouteKey>(
-    (payload.cta_route as RouteKey) ?? 'games',
+function HeroCard({
+  payload,
+  onSave,
+  onBannerResult,
+}: {
+  payload: Payload
+  onSave: Saver
+  onBannerResult: (outcome: AppearanceResult) => void
+}) {
+  const [title, setTitle] = useState(
+    String(payload.title ?? SITE_DEFAULTS.hero.title),
   )
+  const [subtitle, setSubtitle] = useState(
+    String(payload.subtitle ?? SITE_DEFAULTS.hero.subtitle),
+  )
+  const [ctaText, setCtaText] = useState(
+    String(payload.cta_text ?? SITE_DEFAULTS.hero.cta_text),
+  )
+  const [ctaRoute, setCtaRoute] = useState<RouteKey>(
+    (payload.cta_route as RouteKey) ?? 'products',
+  )
+  const [uploading, startUpload] = useTransition()
+
+  const imagePath = typeof payload.image_path === 'string' ? payload.image_path : null
+  const imageUrl = brandMediaUrl(imagePath)
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      <div className="rounded-xl border border-line bg-surface-2 p-4">
+        <label htmlFor="heroBannerFile" className={LABEL}>
+          {t('admin.appearance.fieldHeroImage')}
+        </label>
+        <p className={HINT}>{t('admin.appearance.fieldHeroImageHint')}</p>
+
+        <div className="relative mt-3 aspect-[21/9] w-full overflow-hidden rounded-lg border border-line bg-ink">
+          <ImageWithFallback
+            src={imageUrl}
+            alt={title || 'Hero Banner'}
+            sizes="(min-width: 1024px) 640px, 100vw"
+            className="object-cover object-center"
+            fallback={<HeroArtworkFallback />}
+          />
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            id="heroBannerFile"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            disabled={uploading}
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (!file) return
+              const fd = new FormData()
+              fd.set('file', file)
+              startUpload(async () => {
+                const outcome = await uploadHeroBannerAction({ ok: true, error: null }, fd)
+                onBannerResult(
+                  outcome.ok
+                    ? { ok: true }
+                    : { ok: false, message: outcome.error ?? 'อัปโหลดรูปแบนเนอร์ไม่สำเร็จ' },
+                )
+                event.target.value = ''
+              })
+            }}
+            className="block min-h-11 flex-1 text-sm text-text-2 file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border file:border-line file:bg-surface file:px-3 file:text-sm file:font-medium file:text-text"
+          />
+          {imagePath ? (
+            <button
+              type="button"
+              disabled={uploading}
+              onClick={() => {
+                startUpload(async () => {
+                  const outcome = await removeHeroBannerAction()
+                  onBannerResult(outcome)
+                })
+              }}
+              className="min-h-11 rounded-lg border border-danger/40 px-3 text-sm text-danger hover:bg-danger/10 focus-ring disabled:opacity-50"
+            >
+              {t('admin.appearance.heroImageRemove')}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
       <div>
         <label htmlFor="heroTitle" className={LABEL}>
           {t('admin.appearance.fieldHeroTitle')}
@@ -240,7 +322,10 @@ function HeroCard({ payload, onSave }: { payload: Payload; onSave: Saver }) {
 
 function TrustCard({ payload, onSave }: { payload: Payload; onSave: Saver }) {
   const count = typeof payload.count === 'number' ? payload.count : 4
-  const items = Array.isArray(payload.items) ? (payload.items as string[]) : []
+  const items =
+    Array.isArray(payload.items) && payload.items.length > 0
+      ? (payload.items as string[])
+      : [...SITE_DEFAULTS.trust.items]
 
   return (
     <div className="space-y-3">
@@ -326,7 +411,7 @@ function FeaturedCard({ payload, onSave }: { payload: Payload; onSave: Saver }) 
         <input
           id="featuredTitle"
           maxLength={60}
-          defaultValue={String(payload.title ?? '')}
+          defaultValue={String(payload.title ?? SITE_DEFAULTS.featured_products.title)}
           onBlur={(event) => onSave('featured_products', { title: event.target.value || undefined })}
           className={`mt-1.5 ${FIELD}`}
         />
@@ -393,7 +478,10 @@ function AllProductsCard({ payload, onSave }: { payload: Payload; onSave: Saver 
 function NavigationCard({ payload, onSave }: { payload: Payload; onSave: Saver }) {
   const items = Array.isArray(payload.items)
     ? (payload.items as { label: string; route: RouteKey }[])
-    : []
+    : (SITE_DEFAULTS.navigation.items.map((item) => ({
+        label: item.label,
+        route: item.route as RouteKey,
+      })))
 
   const update = (index: number, patch: Partial<{ label: string; route: RouteKey }>) => {
     const next = items.map((item, i) => (i === index ? { ...item, ...patch } : item))
@@ -480,7 +568,7 @@ function NavigationCard({ payload, onSave }: { payload: Payload; onSave: Saver }
       {items.length < 6 ? (
         <button
           type="button"
-          onClick={() => onSave('navigation', { items: [...items, { label: '', route: 'products' }] })}
+          onClick={() => onSave('navigation', { items: [...items, { label: 'เมนูใหม่', route: 'products' }] })}
           className="min-h-11 rounded-lg border border-line bg-surface-2 px-4 text-sm text-text focus-ring"
         >
           {t('admin.appearance.fieldNavAddItem')}
@@ -521,7 +609,7 @@ function SaveButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="min-h-11 w-full rounded-lg border border-line bg-surface-2 text-sm text-text hover:border-line-ctl focus-ring"
+      className="min-h-11 w-full rounded-lg bg-primary text-sm font-medium text-on-primary hover:brightness-95 focus-ring"
     >
       {t('admin.common.save')}
     </button>
@@ -531,36 +619,61 @@ function SaveButton({ onClick }: { onClick: () => void }) {
 /**
  * The preview.
  *
- * Renders the stored values, not the in-form ones: wiring the two together
- * would mean mirroring every field into state on each keystroke, and the
- * save bar is right above it. The hint says so plainly.
+ * Renders the stored values, including Hero Banner artwork and CTA buttons.
  */
 function LivePreview({ sections }: { sections: readonly SectionRow[] }) {
   const hero = sectionPayload(sections, 'hero')
   const featured = sectionPayload(sections, 'featured_products')
+  const imagePath = typeof hero.image_path === 'string' ? hero.image_path : null
+  const imageUrl = brandMediaUrl(imagePath)
 
   return (
     <section className="rounded-xl border border-line bg-surface p-4">
       <h2 className="text-base font-semibold text-text">{t('admin.appearance.preview')}</h2>
       <p className="mt-1 text-sm text-text-3">{t('admin.appearance.previewHint')}</p>
 
-      <div className="mt-4 overflow-hidden rounded-lg border border-line">
-        <div className="bg-ink px-4 py-8">
-          <p className="text-sm text-text-2">{t('admin.appearance.previewDesktop')}</p>
-          <h3 className="mt-2 text-lg font-bold text-text">
-            {String(hero.title ?? 'ไอดีเกมพร้อมเล่น')}
-          </h3>
-          <p className="mt-1 text-sm text-text-2">{String(hero.subtitle ?? '')}</p>
-          <span className="mt-4 inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm text-on-primary">
-            {String(hero.cta_text ?? 'ดูไอดีทั้งหมด')}
-          </span>
+      <div className="mt-4 overflow-hidden rounded-xl border border-line">
+        <div className="relative overflow-hidden bg-ink px-6 py-10">
+          <div className="absolute inset-0">
+            <ImageWithFallback
+              src={imageUrl}
+              alt="Hero Banner Preview"
+              sizes="(min-width: 1024px) 640px, 100vw"
+              className="object-cover object-center opacity-55"
+              fallback={<HeroArtworkFallback />}
+            />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-[#08080a] via-[#08080a]/85 to-transparent"
+              aria-hidden="true"
+            />
+          </div>
+          <div className="relative z-10 max-w-lg">
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent">
+              {t('admin.appearance.previewDesktop')}
+            </p>
+            <h3 className="mt-2 text-xl font-bold text-text">
+              {String(hero.title ?? SITE_DEFAULTS.hero.title)}
+            </h3>
+            <p className="mt-1.5 text-sm text-text-2">
+              {String(hero.subtitle ?? SITE_DEFAULTS.hero.subtitle)}
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary">
+                {String(hero.cta_text ?? SITE_DEFAULTS.hero.cta_text)}
+              </span>
+              <span className="inline-flex min-h-11 items-center rounded-lg border border-line bg-surface-2/80 px-4 text-sm font-medium text-text">
+                ติดต่อร้าน
+              </span>
+            </div>
+          </div>
         </div>
         <div className="border-t border-line bg-surface px-4 py-3">
           <p className="text-sm font-medium text-text">
-            {String(featured.title ?? 'สินค้าแนะนำ')}
+            {String(featured.title ?? SITE_DEFAULTS.featured_products.title)}
           </p>
         </div>
       </div>
     </section>
   )
 }
+

@@ -14,6 +14,7 @@ import {
 import type { Database } from '@/lib/database.types'
 
 import type {
+  EnrichedProduct,
   GameCard,
   GameRow,
   ProductImageRow,
@@ -23,7 +24,7 @@ import type {
 // Re-exported so server modules can import everything from one place, while
 // client components import the pure helpers from product-utils directly.
 export { coverImage } from './product-utils'
-export type { GameCard, GameRow, ProductImageRow, ProductRow } from './product-utils'
+export type { EnrichedProduct, GameCard, GameRow, ProductImageRow, ProductRow } from './product-utils'
 
 /**
  * Catalogue reads.
@@ -40,9 +41,55 @@ export type { GameCard, GameRow, ProductImageRow, ProductRow } from './product-u
  * plus the tag invalidation in src/lib/cache/tags.ts.
  */
 
+async function enrichProducts(
+  items: ProductRow[],
+  knownGames?: readonly { id: string; name: string; slug: string }[],
+): Promise<EnrichedProduct[]> {
+  if (items.length === 0) return []
+
+  try {
+    const db = await getPublicDb('catalog')
+    const productIds = items.map((p) => p.id)
+
+    const [imagesRes, gamesRes] = await Promise.all([
+      db.from('product_images').select('*').in('product_id', productIds),
+      knownGames
+        ? Promise.resolve({ data: knownGames, error: null })
+        : db.from('games').select('id, name, slug'),
+    ])
+
+    const imagesByProduct = new Map<string, ProductImageRow[]>()
+    for (const img of (imagesRes.data ?? []) as ProductImageRow[]) {
+      const list = imagesByProduct.get(img.product_id) ?? []
+      list.push(img)
+      imagesByProduct.set(img.product_id, list)
+    }
+
+    const gamesById = new Map<string, { name: string; slug: string }>()
+    for (const g of (gamesRes.data ?? []) as { id: string; name: string; slug: string }[]) {
+      gamesById.set(g.id, { name: g.name, slug: g.slug })
+    }
+
+    return items.map((product) => {
+      const imgs = imagesByProduct.get(product.id) ?? []
+      const cover = imgs.find((i) => i.position === 0) ?? null
+      const gameInfo = gamesById.get(product.game_id)
+      return {
+        ...product,
+        cover,
+        image_count: imgs.length,
+        game_name: gameInfo?.name ?? null,
+        game_slug: gameInfo?.slug ?? null,
+      }
+    })
+  } catch {
+    return items
+  }
+}
+
 export interface ProductListResult {
   readonly query: CatalogQueryInput
-  readonly items: ProductRow[]
+  readonly items: EnrichedProduct[]
   readonly total: number
   readonly hasInvalid: boolean
   readonly invalidKeys: readonly string[]
@@ -53,7 +100,7 @@ export interface ProductListResult {
 
 async function runSearchProducts(
   query: CatalogQueryInput,
-): Promise<{ items: ProductRow[]; total: number }> {
+): Promise<{ items: EnrichedProduct[]; total: number }> {
   const offset = (query.page - 1) * PAGE_SIZE
 
   // C-39: deep pagination is refused at the boundary rather than silently
@@ -63,7 +110,7 @@ async function runSearchProducts(
   }
 
   const db = await getPublicDb('catalog')
-  return searchProducts(db, {
+  const { items, total } = await searchProducts(db, {
     p_pattern: query.q ? likePattern(query.q) : null,
     p_game_slug: query.game ?? null,
     p_status: query.status ?? null,
@@ -74,10 +121,12 @@ async function runSearchProducts(
     p_limit: PAGE_SIZE,
     p_offset: offset,
   })
+  const enriched = await enrichProducts(items)
+  return { items: enriched, total }
 }
 
 const cachedSearch = unstable_cache(
-  async (serialized: string): Promise<{ items: ProductRow[]; total: number }> => {
+  async (serialized: string): Promise<{ items: EnrichedProduct[]; total: number }> => {
     const query = JSON.parse(serialized) as CatalogQueryInput
     return runSearchProducts(query)
   },
@@ -102,10 +151,10 @@ export async function getProductList(raw: RawSearchParams): Promise<ProductListR
 }
 
 export interface ProductDetail {
-  readonly product: ProductRow
+  readonly product: EnrichedProduct
   readonly game: GameRow
   readonly images: ProductImageRow[]
-  readonly related: ProductRow[]
+  readonly related: EnrichedProduct[]
 }
 
 interface ProductDetailPayload {
@@ -130,12 +179,20 @@ async function runProductDetail(code: string): Promise<ProductDetail | null> {
   if (!game) return null
 
   const images = [...(payload.images ?? [])].sort((a, b) => a.position - b.position)
+  const cover = images.find((i) => i.position === 0) ?? null
+  const enrichedRelated = await enrichProducts(payload.related ?? [], [game])
 
   return {
-    product: payload.product,
+    product: {
+      ...payload.product,
+      cover,
+      image_count: images.length,
+      game_name: game.name,
+      game_slug: game.slug,
+    },
     game,
     images,
-    related: payload.related ?? [],
+    related: enrichedRelated,
   }
 }
 
@@ -181,8 +238,8 @@ export const getGameCards = (limit = 8): Promise<GameCard[]> => cachedGameCards(
 export interface HomeData {
   readonly sections: Database['public']['Tables']['site_sections']['Row'][]
   readonly games: GameCard[]
-  readonly featured: ProductRow[]
-  readonly latest: ProductRow[]
+  readonly featured: EnrichedProduct[]
+  readonly latest: EnrichedProduct[]
 }
 
 const cachedHome = unstable_cache(
@@ -212,11 +269,15 @@ const cachedHome = unstable_cache(
       | { settings?: unknown; sections?: Database['public']['Tables']['site_sections']['Row'][] }
       | null
 
+    const gamesList = (cards.data ?? []) as GameCard[]
+    const enriched = await enrichProducts(products.items, gamesList)
+    const featuredOnly = enriched.filter((p) => p.featured_at !== null)
+
     return {
       sections: shellRow?.sections ?? [],
-      games: (cards.data ?? []) as GameCard[],
-      featured: products.items,
-      latest: products.items,
+      games: gamesList,
+      featured: featuredOnly.length > 0 ? featuredOnly : enriched,
+      latest: enriched,
     }
   },
   ['home-data'],
@@ -234,7 +295,7 @@ export const getHomeData = (): Promise<HomeData> => cachedHome()
  * flight" (a failure mode called out in the plan). It uses the same public
  * client and the same tags as the real site.
  */
-export async function getPreviewCatalog(limit = 6): Promise<ProductRow[]> {
+export async function getPreviewCatalog(limit = 6): Promise<EnrichedProduct[]> {
   const capped = Math.min(Math.max(limit, 1), 6)
   const db = await getPublicDb('catalog')
   const { items } = await searchProducts(db, {
@@ -248,5 +309,5 @@ export async function getPreviewCatalog(limit = 6): Promise<ProductRow[]> {
     p_limit: capped,
     p_offset: 0,
   })
-  return items
+  return enrichProducts(items)
 }

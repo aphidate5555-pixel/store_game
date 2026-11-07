@@ -64,20 +64,34 @@ export const adminTh = {
   'admin.products.fieldFeaturedHint': 'สินค้าจะปรากฏในชั้นวางสินค้าแนะนำบนหน้าแรก',
 
   // ---- currency ---------------------------------------------------------
+  'admin.products.fieldPriceThb': 'ราคาเงินบาท (Price THB)',
+  'admin.products.fieldPriceThbHint': 'กรอกจำนวนเต็มเป็นเงินบาท (THB) เช่น 2300 (เว้นว่างได้หากขายเฉพาะเงินกีบ)',
+  'admin.products.fieldPriceLak': 'ราคาเงินกีบ (Price LAK)',
+  'admin.products.fieldPriceLakHint': 'กรอกจำนวนเต็มเป็นเงินกีบ (LAK) เช่น 1399000 (เว้นว่างได้หากขายเฉพาะเงินบาท)',
   'admin.products.currencyThbLabel': 'บาท (THB)',
-  'admin.products.currencyLakLabel': 'ลาว (LAK)',
-  'admin.products.currencyPreviewThb': 'ตัวอย่างที่แสดงบนเว็บไซต์: ฿1,250',
-  'admin.products.currencyPreviewLak': 'ตัวอย่างที่แสดงบนเว็บไซต์: 1,250,000 ลาว (LAK)',
+  'admin.products.currencyLakLabel': 'กีบ (LAK)',
+  'admin.products.currencyPreviewThb': 'ตัวอย่างที่แสดงบนเว็บไซต์: ฿1,250 THB',
+  'admin.products.currencyPreviewLak': 'ตัวอย่างที่แสดงบนเว็บไซต์: 1,250,000 LAK',
   'admin.products.currencyNoConversion':
-    'ราคาที่มีอยู่จะไม่ถูกแปลงสกุลเงิน ระบบจะแสดงตามสกุลที่เลือกเท่านั้น',
+    'ราคาทั้งสองสกุลถูกจัดเก็บแยกกันอย่างอิสระ ระบบจะไม่แปลงค่าเงินหรือปัดเศษอัตโนมัติ',
   'admin.products.currencyChangeWarning':
-    'เปลี่ยนสกุลเงินแล้ว ตัวเลขราคาจะถูกตีความใหม่ตามสกุลใหม่ทันที กรุณาตรวจสอบราคาอีกครั้ง',
+    'เปลี่ยนสกุลเงินหลักแล้ว กรุณาตรวจสอบตัวเลขราคาให้ตรงกับสกุลเงินที่เลือก',
 
   // ---- status -----------------------------------------------------------
   'admin.products.statusAvailable': 'พร้อมขาย',
+  'admin.products.statusReserved': 'ติดจอง',
   'admin.products.statusSold': 'ขายแล้ว',
   'admin.products.setAvailable': 'เปลี่ยนเป็นพร้อมขาย',
+  'admin.products.setReserved': 'เปลี่ยนเป็นติดจอง',
   'admin.products.setSold': 'เปลี่ยนเป็นขายแล้ว',
+
+  // ---- images management ------------------------------------------------
+  'admin.products.existingImages': 'รูปภาพปัจจุบันของสินค้า',
+  'admin.products.coverBadge': 'ภาพปกหลัก',
+  'admin.products.setCover': 'ตั้งเป็นภาพปก',
+  'admin.products.deleteImage': 'ลบรูปนี้',
+  'admin.products.imageSetCoverSuccess': 'เปลี่ยนภาพปกสินค้าเรียบร้อยแล้ว',
+  'admin.products.imageDeleteSuccess': 'ลบรูปภาพเรียบร้อยแล้ว',
 
   // ---- delete -----------------------------------------------------------
   'admin.products.deleteTitle': 'ลบสินค้านี้?',

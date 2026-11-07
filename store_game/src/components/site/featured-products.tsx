@@ -3,33 +3,24 @@ import Link from 'next/link'
 import { ProductCard } from '@/components/product/product-card'
 import { getMessages } from '@/lib/i18n'
 import { sectionPayload } from '@/lib/catalog/site-content'
+import type { EnrichedProduct } from '@/lib/catalog/product-utils'
+import type { WhatsAppStore } from '@/lib/catalog/whatsapp'
 import type { Database } from '@/lib/database.types'
 import type { Variant } from '@/lib/home/variants'
 import { VARIANT_CONFIG } from '@/lib/home/variants'
 
-type ProductRow = Database['public']['Tables']['products']['Row']
 type SectionRow = Database['public']['Tables']['site_sections']['Row']
 
-/**
- * The featured shelf.
- *
- * Variant B renders it as a horizontal snap rail rather than a grid — the one
- * genuinely different layout among the three concepts. The product data, the
- * cards and the query are identical; only the wrapper changes.
- *
- * search_products does not return image rows, so the cards are rendered
- * without a cover here. The catalogue page and the product page fetch their
- * own covers. A card with no image shows a labelled placeholder rather than a
- * broken image frame.
- */
 export function FeaturedProducts({
   products,
   sections,
   variant,
+  store,
 }: {
-  products: ProductRow[]
+  products: EnrichedProduct[]
   sections: readonly SectionRow[]
   variant: Variant
+  store?: WhatsAppStore | null
 }) {
   const m = getMessages()
   const payload = sectionPayload(sections, 'featured_products')
@@ -42,8 +33,8 @@ export function FeaturedProducts({
 
   if (shown.length === 0) return null
 
-  const card = (product: ProductRow) => (
-    <ProductCard product={product} cover={null} imageCount={0} />
+  const card = (product: EnrichedProduct) => (
+    <ProductCard product={product} store={store} />
   )
 
   return (

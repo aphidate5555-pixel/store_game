@@ -1,16 +1,26 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useState, useTransition } from 'react'
 import { useFormStatus } from 'react-dom'
 import { useRouter } from 'next/navigation'
 
 import { useUnsavedChangesGuard } from '@/hooks/use-unsaved-changes-guard'
-import { uploadProductImages, upsertProductAction, type ActionResult } from './actions'
+import {
+  uploadProductImages,
+  upsertProductAction,
+  deleteProductImageAction,
+  setProductCoverAction,
+  type ActionResult,
+} from './actions'
 import { MAX_IMAGE_BYTES_LABEL, MAX_FILES_PER_UPLOAD } from '@/lib/images/limits'
+import { getProductPrices, formatCodePrice } from '@/lib/format/money'
+import { productMediaUrl } from '@/lib/storage/media-url'
+import { ImageWithFallback, ProductArtworkFallback } from '@/components/ui/image-with-fallback'
 import { t } from '@/lib/i18n/th/admin'
 import type { Database } from '@/lib/database.types'
 
 type ProductRow = Database['public']['Tables']['products']['Row']
+type ProductImageRow = Database['public']['Tables']['product_images']['Row']
 type GameRow = Database['public']['Tables']['games']['Row']
 
 const FIELD =
@@ -33,13 +43,21 @@ function SaveButton() {
 export function ProductForm({
   product,
   games,
+  images = [],
 }: {
   product: ProductRow | null
   games: GameRow[]
+  images?: ProductImageRow[]
 }) {
   const router = useRouter()
   const [state, formAction] = useActionState<ActionResult | null, FormData>(upsertProductAction, null)
-  const [currency, setCurrency] = useState<'THB' | 'LAK'>(product?.currency ?? 'THB')
+  const initialPrices = product ? getProductPrices(product) : { thb: null, lak: null }
+  const [priceThbInput, setPriceThbInput] = useState<string>(
+    initialPrices.thb !== null ? String(initialPrices.thb) : '',
+  )
+  const [priceLakInput, setPriceLakInput] = useState<string>(
+    initialPrices.lak !== null ? String(initialPrices.lak) : '',
+  )
   const [dirty, setDirty] = useState(false)
   const [saved, setSaved] = useState(false)
 
@@ -47,6 +65,15 @@ export function ProductForm({
 
   const productCode = product?.product_code ?? ''
   const productId = product?.id ?? ''
+
+  const parsedThb =
+    priceThbInput.trim() !== '' && Number.isInteger(Number(priceThbInput)) && Number(priceThbInput) >= 0
+      ? Number(priceThbInput)
+      : null
+  const parsedLak =
+    priceLakInput.trim() !== '' && Number.isInteger(Number(priceLakInput)) && Number(priceLakInput) >= 0
+      ? Number(priceLakInput)
+      : null
 
   return (
     <div className="space-y-6 pb-28 lg:pb-0">
@@ -76,7 +103,7 @@ export function ProductForm({
               defaultValue={productCode}
               placeholder="ML-20481"
               aria-describedby="productCode-hint"
-              className={`mt-1.5 ${FIELD}`}
+              className={`mt-1.5 ${FIELD} font-mono`}
             />
             <p id="productCode-hint" className="mt-1.5 text-sm text-text-3">
               {t('admin.products.fieldCodeHint')}
@@ -233,54 +260,63 @@ export function ProductForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label htmlFor="priceAmount" className={LABEL}>
-                {t('admin.products.fieldPrice')}
+              <label htmlFor="priceThb" className={LABEL}>
+                {t('admin.products.fieldPriceThb')}
               </label>
               <input
-                id="priceAmount"
-                name="priceAmount"
+                id="priceThb"
+                name="priceThb"
                 type="number"
                 inputMode="numeric"
                 min={0}
                 step={1}
-                required
-                defaultValue={product?.price_amount ?? ''}
-                aria-describedby="priceAmount-hint"
-                className={`mt-1.5 ${FIELD}`}
+                placeholder="350"
+                value={priceThbInput}
+                onChange={(event) => setPriceThbInput(event.target.value)}
+                aria-describedby="priceThb-hint"
+                className={`mt-1.5 ${FIELD} tabular-nums`}
               />
-              <p id="priceAmount-hint" className="mt-1.5 text-sm text-text-3">
-                {t('admin.products.fieldPriceHint')}
+              <p id="priceThb-hint" className="mt-1.5 text-sm text-text-3">
+                {t('admin.products.fieldPriceThbHint')}
               </p>
+              {parsedThb !== null ? (
+                <p className="mt-1 text-xs font-semibold text-text">
+                  ตัวอย่างหน้าเว็บ: {formatCodePrice(parsedThb, 'THB')}
+                </p>
+              ) : null}
             </div>
 
             <div>
-              <label htmlFor="currency" className={LABEL}>
-                {t('admin.products.fieldCurrency')}
+              <label htmlFor="priceLak" className={LABEL}>
+                {t('admin.products.fieldPriceLak')}
               </label>
-              <select
-                id="currency"
-                name="currency"
-                value={currency}
-                onChange={(event) => setCurrency(event.target.value as 'THB' | 'LAK')}
-                aria-describedby="currency-hint currency-preview"
-                className={`mt-1.5 ${FIELD}`}
-              >
-                <option value="THB">{t('admin.products.currencyThbLabel')}</option>
-                <option value="LAK">{t('admin.products.currencyLakLabel')}</option>
-              </select>
-              <p id="currency-hint" className="mt-1.5 text-sm text-text-3">
-                {t('admin.products.fieldCurrencyHint')}
+              <input
+                id="priceLak"
+                name="priceLak"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                placeholder="220000"
+                value={priceLakInput}
+                onChange={(event) => setPriceLakInput(event.target.value)}
+                aria-describedby="priceLak-hint"
+                className={`mt-1.5 ${FIELD} tabular-nums`}
+              />
+              <p id="priceLak-hint" className="mt-1.5 text-sm text-text-3">
+                {t('admin.products.fieldPriceLakHint')}
               </p>
-              <p id="currency-preview" className="mt-1 text-sm text-primary">
-                {currency === 'THB'
-                  ? t('admin.products.currencyPreviewThb')
-                  : t('admin.products.currencyPreviewLak')}
-              </p>
-              <p className="mt-1 text-sm text-text-3">
-                {t('admin.products.currencyNoConversion')}
-              </p>
+              {parsedLak !== null ? (
+                <p className="mt-1 text-xs font-semibold text-accent">
+                  ตัวอย่างหน้าเว็บ: {formatCodePrice(parsedLak, 'LAK')}
+                </p>
+              ) : null}
             </div>
           </div>
+
+          <p className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-xs text-text-2">
+            {t('admin.products.currencyNoConversion')}
+          </p>
         </fieldset>
 
         <fieldset className="space-y-4 rounded-xl border border-line bg-surface p-4">
@@ -301,6 +337,7 @@ export function ProductForm({
                 className={`mt-1.5 ${FIELD}`}
               >
                 <option value="available">{t('admin.products.statusAvailable')}</option>
+                <option value="reserved">{t('admin.products.statusReserved')}</option>
                 <option value="sold">{t('admin.products.statusSold')}</option>
               </select>
               <p id="status-hint" className="mt-1.5 text-sm text-text-3">
@@ -323,17 +360,18 @@ export function ProductForm({
           <p className="text-sm text-text-3">{t('admin.products.fieldVisibilityHint')}</p>
         </fieldset>
 
-        {/*
-          The error keeps the form mounted and the values intact, so a
-          validation failure never costs the administrator their typing (the
-          rule the save.failedReassure line states).
-        */}
-        {state && !state.ok ? (
-          <div role="alert" className="rounded-lg border border-danger/40 bg-danger/10 p-4">
-            <p className="text-sm font-medium text-text">{t('errors.save.failedTitle')}</p>
-            <p className="mt-1 text-sm text-text-2">{state.message}</p>
-            <p className="mt-2 text-sm text-text-3">{t('errors.save.failedReassure')}</p>
-          </div>
+        {state ? (
+          state.ok ? (
+            <div role="status" className="rounded-lg border border-success/40 bg-success/10 p-4">
+              <p className="text-sm font-medium text-text">{t('errors.save.saved')}</p>
+            </div>
+          ) : (
+            <div role="alert" className="rounded-lg border border-danger/40 bg-danger/10 p-4">
+              <p className="text-sm font-medium text-text">{t('errors.save.failedTitle')}</p>
+              <p className="mt-1 text-sm text-text-2">{state.message}</p>
+              <p className="mt-2 text-sm text-text-3">{t('errors.save.failedReassure')}</p>
+            </div>
+          )
         ) : null}
 
         <div className="sticky bottom-0 z-40 -mx-4 border-t border-line bg-surface px-4 py-3 lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:p-0">
@@ -341,14 +379,11 @@ export function ProductForm({
         </div>
       </form>
 
-      {/*
-        The uploader is a separate form so its large multipart body never
-        rides along with the product save.
-      */}
       {productId ? (
         <ImageUploader
           productId={productId}
           productCode={productCode}
+          images={images}
           onDone={() => router.refresh()}
         />
       ) : (
@@ -363,52 +398,129 @@ export function ProductForm({
 function ImageUploader({
   productId,
   productCode,
+  images,
   onDone,
 }: {
   productId: string
   productCode: string
+  images: ProductImageRow[]
   onDone: () => void
 }) {
   const [state, formAction] = useActionState(uploadProductImages, {
     ok: true,
     error: null,
   })
+  const [pendingAction, startTransition] = useTransition()
+  const [actionError, setActionError] = useState<string | null>(null)
 
   return (
-    <form action={formAction} className="space-y-3 rounded-xl border border-line bg-surface p-4">
+    <div className="space-y-4 rounded-xl border border-line bg-surface p-4">
       <h2 className="text-sm font-semibold text-text">{t('admin.products.sectionImages')}</h2>
 
-      <input type="hidden" name="productId" value={productId} />
-      <input type="hidden" name="productCode" value={productCode} />
+      {images.length > 0 ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {images.map((image) => {
+            const url = productMediaUrl(image.storage_path)
+            const isCover = image.position === 0
+            return (
+              <div
+                key={image.id}
+                className={[
+                  'overflow-hidden rounded-xl border bg-surface-2',
+                  isCover ? 'border-primary ring-1 ring-primary' : 'border-line',
+                ].join(' ')}
+              >
+                <div className="relative aspect-[16/10] w-full bg-ink">
+                  <ImageWithFallback
+                    src={url}
+                    alt={image.alt || productCode}
+                    sizes="200px"
+                    className="object-cover"
+                    fallback={<ProductArtworkFallback code={productCode} />}
+                  />
+                  {isCover ? (
+                    <span className="absolute left-2 top-2 rounded-md bg-primary px-2 py-0.5 text-[11px] font-semibold text-on-primary">
+                      {t('admin.products.coverBadge')}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap gap-1.5 p-2">
+                  {!isCover ? (
+                    <button
+                      type="button"
+                      disabled={pendingAction}
+                      onClick={() => {
+                        setActionError(null)
+                        startTransition(async () => {
+                          const res = await setProductCoverAction(productId, image.id, productCode)
+                          if (!res.ok) setActionError(res.message)
+                          else onDone()
+                        })
+                      }}
+                      className="min-h-9 flex-1 rounded-lg border border-line bg-surface px-2 text-xs font-medium text-text hover:border-line-ctl focus-ring disabled:opacity-50"
+                    >
+                      {t('admin.products.setCover')}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={pendingAction}
+                    onClick={() => {
+                      setActionError(null)
+                      startTransition(async () => {
+                        const res = await deleteProductImageAction(image.id, productId, productCode)
+                        if (!res.ok) setActionError(res.message)
+                        else onDone()
+                      })
+                    }}
+                    className="min-h-9 rounded-lg border border-danger/40 px-2.5 text-xs font-medium text-danger hover:bg-danger/10 focus-ring disabled:opacity-50"
+                  >
+                    {t('admin.products.deleteImage')}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : null}
 
-      <div>
-        <label htmlFor="files" className={LABEL}>
-          {t('admin.products.sectionImages')}
-        </label>
-        <input
-          id="files"
-          name="files"
-          type="file"
-          // No `multiple`: iOS Safari handles it inconsistently, so files are
-          // chosen one at a time and the list grows.
-          accept="image/jpeg,image/png,image/webp,image/avif"
-          aria-describedby="files-hint"
-          className="mt-1.5 block w-full min-h-11 text-sm text-text-2 file:mr-3 file:min-h-11 file:rounded-lg file:border file:border-line file:bg-surface-2 file:px-3 file:text-sm file:text-text"
-        />
-        <p id="files-hint" className="mt-1.5 text-sm text-text-3">
-          รองรับ JPG, PNG, WebP และ AVIF · ไม่เกิน {MAX_IMAGE_BYTES_LABEL} ต่อไฟล์ ·
-          สูงสุด {MAX_FILES_PER_UPLOAD} รูปต่อครั้ง
-        </p>
-      </div>
-
-      {state.error ? (
-        <p role="alert" className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-text">
-          {state.error}
+      {actionError ? (
+        <p role="alert" className="rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-text">
+          {actionError}
         </p>
       ) : null}
 
-      <UploadButton onDone={onDone} />
-    </form>
+      <form action={formAction} className="space-y-3 border-t border-line pt-3">
+        <input type="hidden" name="productId" value={productId} />
+        <input type="hidden" name="productCode" value={productCode} />
+
+        <div>
+          <label htmlFor="files" className={LABEL}>
+            {t('admin.common.upload')}
+          </label>
+          <input
+            id="files"
+            name="files"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/avif"
+            aria-describedby="files-hint"
+            className="mt-1.5 block min-h-11 w-full text-sm text-text-2 file:mr-3 file:min-h-11 file:rounded-lg file:border file:border-line file:bg-surface-2 file:px-3 file:text-sm file:text-text"
+          />
+          <p id="files-hint" className="mt-1.5 text-sm text-text-3">
+            รองรับ JPG, PNG, WebP และ AVIF · ไม่เกิน {MAX_IMAGE_BYTES_LABEL} ต่อไฟล์ ·
+            สูงสุด {MAX_FILES_PER_UPLOAD} รูปต่อครั้ง
+          </p>
+        </div>
+
+        {state.error ? (
+          <p role="alert" className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-text">
+            {state.error}
+          </p>
+        ) : null}
+
+        <UploadButton onDone={onDone} />
+      </form>
+    </div>
   )
 }
 
@@ -425,3 +537,4 @@ function UploadButton({ onDone }: { onDone: () => void }) {
     </button>
   )
 }
+

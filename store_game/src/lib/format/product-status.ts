@@ -11,8 +11,8 @@ export type ProductStatus = Database['public']['Enums']['product_status']
  */
 export interface StatusPresentation {
   readonly label: string
-  readonly tone: 'success' | 'danger'
-  readonly icon: 'check' | 'ban'
+  readonly tone: 'success' | 'warning' | 'danger'
+  readonly icon: 'check' | 'clock' | 'ban'
   /** Tailwind class controlling the silhouette. */
   readonly shape: string
   readonly ariaLabel: string
@@ -26,6 +26,13 @@ const STATUS: Record<ProductStatus, StatusPresentation> = {
     shape: 'rounded-full',
     ariaLabel: 'สถานะ: พร้อมขาย',
   },
+  reserved: {
+    label: 'ติดจอง',
+    tone: 'warning',
+    icon: 'clock',
+    shape: 'rounded-md',
+    ariaLabel: 'สถานะ: ติดจอง',
+  },
   sold: {
     label: 'ขายแล้ว',
     tone: 'danger',
@@ -35,7 +42,7 @@ const STATUS: Record<ProductStatus, StatusPresentation> = {
   },
 }
 
-export const productStatus = (status: ProductStatus): StatusPresentation => STATUS[status]
+export const productStatus = (status: ProductStatus): StatusPresentation => STATUS[status] ?? STATUS.available
 
 export const isAvailable = (status: ProductStatus): boolean => status === 'available'
 

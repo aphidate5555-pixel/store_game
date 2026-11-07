@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { formatCount, formatDateTime } from '@/lib/format/number'
-import { formatPrice, priceValue } from '@/lib/format/money'
+import { formatPrice, formatCodePrice, getProductPrices, priceValue } from '@/lib/format/money'
 
 /**
  * These assertions pin the exact output string, not just "it contains a
@@ -30,6 +30,41 @@ describe('formatPrice', () => {
 
   it('renders zero rather than an empty string', () => {
     expect(formatPrice(0, 'THB')).toBe('฿0')
+  })
+})
+
+describe('formatCodePrice & getProductPrices (dual-currency)', () => {
+  it('renders THB and LAK with clear currency codes and thousands separators', () => {
+    expect(formatCodePrice(350, 'THB')).toBe('350 THB')
+    expect(formatCodePrice(220_000, 'LAK')).toBe('220,000 LAK')
+  })
+
+  it('extracts both THB and LAK prices independently without conversion', () => {
+    const dual = getProductPrices({
+      price_amount: 350,
+      currency: 'THB',
+      price_thb: 350,
+      price_lak: 220_000,
+    })
+    expect(dual).toEqual({ thb: 350, lak: 220_000 })
+  })
+
+  it('falls back to legacy price_amount and currency when price_thb/price_lak are null', () => {
+    expect(
+      getProductPrices({
+        price_amount: 1200,
+        currency: 'THB',
+        price_thb: null,
+        price_lak: null,
+      }),
+    ).toEqual({ thb: 1200, lak: null })
+
+    expect(
+      getProductPrices({
+        price_amount: 450_000,
+        currency: 'LAK',
+      }),
+    ).toEqual({ thb: null, lak: 450_000 })
   })
 })
 

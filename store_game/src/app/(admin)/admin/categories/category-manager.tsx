@@ -6,11 +6,14 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 
 import { formatCount } from '@/lib/format/number'
 import { t } from '@/lib/i18n/th/admin'
+import { brandMediaUrl } from '@/lib/storage/media-url'
+import { ImageWithFallback, CategoryArtworkFallback } from '@/components/ui/image-with-fallback'
 import {
   deleteCategoryAction,
   setCategoryEnabledAction,
   reorderCategoriesAction,
   upsertCategoryAction,
+  removeCategoryImageAction,
   type CategoryResult,
 } from './actions'
 import type { Database } from '@/lib/database.types'
@@ -111,6 +114,7 @@ export function CategoryManager({
       {editing ? (
         <CategoryEditor
           category={categories.find((game) => game.id === editing) ?? null}
+          defaultPosition={categories.length + 1}
           onDone={() => {
             setEditing(null)
             router.refresh()
@@ -132,78 +136,109 @@ export function CategoryManager({
           <p className="mt-1 text-sm text-text-2">{t('admin.categories.emptyBody')}</p>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {categories.map((category, index) => (
-            <li key={category.id} className="rounded-xl border border-line bg-surface p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-text">{category.name}</p>
-                  <p className="mt-0.5 text-xs text-text-3">/{category.slug}</p>
-                  <p className="mt-1 text-sm text-text-2">
-                    {t('admin.categories.productCount', {
-                      available: formatCount(category.available_count),
-                      total: formatCount(category.product_count),
-                    })}
-                  </p>
+        <ul className="space-y-2.5">
+          {categories.map((category, index) => {
+            const coverUrl = brandMediaUrl(category.image_path)
+            return (
+              <li key={category.id} className="rounded-xl border border-line bg-surface p-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-3.5">
+                    <div className="relative h-14 w-24 shrink-0 overflow-hidden rounded-lg border border-line bg-ink">
+                      <ImageWithFallback
+                        src={coverUrl}
+                        alt={category.name}
+                        sizes="96px"
+                        className="object-cover"
+                        fallback={
+                          <CategoryArtworkFallback
+                            name={category.name}
+                            slug={category.slug}
+                          />
+                        }
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-text">{category.name}</p>
+                        <span
+                          className={[
+                            'inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium',
+                            category.is_enabled
+                              ? 'border-success/35 bg-success/10 text-success'
+                              : 'border-line bg-surface-2 text-text-3',
+                          ].join(' ')}
+                        >
+                          {category.is_enabled ? 'เปิดใช้งาน' : 'ซ่อนอยู่'}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 font-mono text-xs text-text-3">/{category.slug}</p>
+                      <p className="mt-1 text-xs text-text-2">
+                        {t('admin.categories.productCount', {
+                          available: formatCount(category.available_count),
+                          total: formatCount(category.product_count),
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      disabled={pending || index === 0}
+                      onClick={() => move(index, -1)}
+                      aria-label={t('admin.common.reorderUp', { item: category.name })}
+                      className="grid size-11 place-items-center rounded-lg border border-line text-text-2 hover:border-line-ctl focus-ring disabled:opacity-40"
+                    >
+                      <ChevronUp size={16} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pending || index === categories.length - 1}
+                      onClick={() => move(index, 1)}
+                      aria-label={t('admin.common.reorderDown', { item: category.name })}
+                      className="grid size-11 place-items-center rounded-lg border border-line text-text-2 hover:border-line-ctl focus-ring disabled:opacity-40"
+                    >
+                      <ChevronDown size={16} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(category.id)}
+                      className="min-h-11 rounded-lg border border-line px-3 text-sm text-text hover:border-line-ctl focus-ring"
+                    >
+                      {t('admin.common.edit')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() =>
+                        run(() =>
+                          setCategoryEnabledAction(category.id, !category.is_enabled),
+                        )
+                      }
+                      className="min-h-11 rounded-lg border border-line px-3 text-sm text-text hover:border-line-ctl focus-ring disabled:opacity-50"
+                    >
+                      {category.is_enabled ? t('admin.common.disable') : t('admin.common.enable')}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      onClick={() => {
+                        setEditing(category.id)
+                        run(() => deleteCategoryAction(category.id))
+                      }}
+                      className="min-h-11 rounded-lg border border-danger/40 px-3 text-sm text-danger focus-ring disabled:opacity-50"
+                    >
+                      {t('admin.common.delete')}
+                    </button>
+                  </div>
                 </div>
 
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    type="button"
-                    disabled={pending || index === 0}
-                    onClick={() => move(index, -1)}
-                    aria-label={t('admin.common.reorderUp', { item: category.name })}
-                    className="grid size-11 place-items-center rounded-lg border border-line text-text-2 hover:border-line-ctl focus-ring disabled:opacity-40"
-                  >
-                    <ChevronUp size={16} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    disabled={pending || index === categories.length - 1}
-                    onClick={() => move(index, 1)}
-                    aria-label={t('admin.common.reorderDown', { item: category.name })}
-                    className="grid size-11 place-items-center rounded-lg border border-line text-text-2 hover:border-line-ctl focus-ring disabled:opacity-40"
-                  >
-                    <ChevronDown size={16} aria-hidden="true" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEditing(category.id)}
-                    className="min-h-11 rounded-lg border border-line px-3 text-sm text-text hover:border-line-ctl focus-ring"
-                  >
-                    {t('admin.common.edit')}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() =>
-                      run(() =>
-                        setCategoryEnabledAction(category.id, !category.is_enabled),
-                      )
-                    }
-                    className="min-h-11 rounded-lg border border-line px-3 text-sm text-text hover:border-line-ctl focus-ring disabled:opacity-50"
-                  >
-                    {category.is_enabled ? t('admin.common.disable') : t('admin.common.enable')}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => {
-                      setEditing(category.id)
-                      run(() => deleteCategoryAction(category.id))
-                    }}
-                    className="min-h-11 rounded-lg border border-danger/40 px-3 text-sm text-danger focus-ring disabled:opacity-50"
-                  >
-                    {t('admin.common.delete')}
-                  </button>
-                </div>
-              </div>
-
-              {!category.is_enabled ? (
-                <p className="mt-2 text-xs text-text-3">{t('admin.categories.fieldEnabledHint')}</p>
-              ) : null}
-            </li>
-          ))}
+                {!category.is_enabled ? (
+                  <p className="mt-2 text-xs text-text-3">{t('admin.categories.fieldEnabledHint')}</p>
+                ) : null}
+              </li>
+            )
+          })}
         </ul>
       )}
 
@@ -214,13 +249,16 @@ export function CategoryManager({
 
 function CategoryEditor({
   category,
+  defaultPosition,
   onDone,
 }: {
   category: CategoryWithCount | null
+  defaultPosition: number
   onDone: () => void
 }) {
   const [pending, startTransition] = useTransition()
   const [result, setResult] = useState<CategoryResult | null>(null)
+  const coverUrl = brandMediaUrl(category?.image_path ?? null)
 
   const FIELD =
     'min-h-11 w-full rounded-lg border border-line bg-surface-2 px-3 text-base text-text focus-ring'
@@ -241,6 +279,11 @@ function CategoryEditor({
       </h2>
 
       {category ? <input type="hidden" name="id" value={category.id} /> : null}
+      <input
+        type="hidden"
+        name="position"
+        value={category?.position ?? defaultPosition}
+      />
 
       <div>
         <label htmlFor="categoryName" className="block text-sm font-medium text-text-2">
@@ -279,6 +322,56 @@ function CategoryEditor({
         </p>
       </div>
 
+      <div className="rounded-xl border border-line bg-surface-2 p-4">
+        <label htmlFor="categoryImage" className="block text-sm font-medium text-text-2">
+          {t('admin.categories.fieldImage')}
+        </label>
+        <p className="mt-1 text-sm text-text-3">{t('admin.categories.fieldImageHint')}</p>
+
+        {category ? (
+          <div className="relative mt-3 h-28 w-48 overflow-hidden rounded-lg border border-line bg-ink">
+            <ImageWithFallback
+              src={coverUrl}
+              alt={category.name}
+              sizes="192px"
+              className="object-cover"
+              fallback={
+                <CategoryArtworkFallback
+                  name={category.name}
+                  slug={category.slug}
+                />
+              }
+            />
+          </div>
+        ) : null}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            id="categoryImage"
+            name="image"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="block min-h-11 flex-1 text-sm text-text-2 file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-lg file:border file:border-line file:bg-surface file:px-3 file:text-sm file:font-medium file:text-text"
+          />
+          {category?.image_path ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => {
+                startTransition(async () => {
+                  const outcome = await removeCategoryImageAction(category.id)
+                  setResult(outcome)
+                  if (outcome.ok) onDone()
+                })
+              }}
+              className="min-h-11 rounded-lg border border-danger/40 px-3 text-sm text-danger hover:bg-danger/10 focus-ring disabled:opacity-50"
+            >
+              {t('admin.common.delete')}
+            </button>
+          ) : null}
+        </div>
+      </div>
+
       <div>
         <label htmlFor="categoryDescription" className="block text-sm font-medium text-text-2">
           {t('admin.categories.fieldDescription')}
@@ -289,12 +382,8 @@ function CategoryEditor({
           rows={3}
           maxLength={500}
           defaultValue={category?.description ?? ''}
-          aria-describedby="categoryDescription-hint"
           className={`mt-1.5 py-2.5 ${FIELD}`}
         />
-        <p id="categoryDescription-hint" className="mt-1.5 text-sm text-text-3">
-          {t('admin.categories.fieldImageHint')}
-        </p>
       </div>
 
       <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-text">

@@ -5,6 +5,9 @@ import { z } from 'zod'
 import { requireAdminAction } from '@/lib/auth/require-admin'
 import { createSupabaseActionClient } from '@/lib/supabase/action'
 import { invalidateCatalog } from '@/lib/cache/tags'
+import { isAllowedBrandMime, MAX_IMAGE_BYTES_LABEL } from '@/lib/images/limits'
+import { BUCKETS } from '@/lib/storage/buckets'
+import { buildBrandPath } from '@/lib/storage/storage-paths'
 import type { Json } from '@/lib/database.types'
 
 /**
@@ -56,7 +59,7 @@ export async function upsertCategoryAction(
     name: formData.get('name'),
     slug: formData.get('slug'),
     description: formData.get('description') || undefined,
-    is_enabled: formData.get('is_enabled') ?? true,
+    is_enabled: formData.get('is_enabled') === 'on' || formData.get('is_enabled') === 'true',
     position: formData.get('position') ?? 0,
   })
 
@@ -67,12 +70,47 @@ export async function upsertCategoryAction(
   const input = parsed.data
   const db = await createSupabaseActionClient()
 
+  let uploadedImagePath: string | undefined
+  let oldImagePath: string | null = null
+  const imageFile = formData.get('image')
+
+  if (imageFile instanceof File && imageFile.size > 0) {
+    if (!isAllowedBrandMime(imageFile.type)) {
+      return { ok: false, code: 'error', message: 'รองรับเฉพาะไฟล์รูป JPG, PNG หรือ WebP' }
+    }
+    if (imageFile.size > 3_500_000) {
+      return { ok: false, code: 'error', message: `ไฟล์รูปใหญ่เกิน ${MAX_IMAGE_BYTES_LABEL}` }
+    }
+
+    if (input.id) {
+      const { data: existing } = await db
+        .from('games')
+        .select('image_path')
+        .eq('id', input.id)
+        .maybeSingle()
+      oldImagePath = existing?.image_path ?? null
+    }
+
+    const path = buildBrandPath('category')
+    const buffer = Buffer.from(await imageFile.arrayBuffer())
+    const { error: uploadError } = await db.storage.from(BUCKETS.brand).upload(path, buffer, {
+      contentType: imageFile.type,
+      cacheControl: '31536000',
+      upsert: true,
+    })
+    if (uploadError) {
+      return { ok: false, code: 'error', message: 'อัปโหลดรูปปกหมวดหมู่ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' }
+    }
+    uploadedImagePath = path
+  }
+
   const payload = {
     name: input.name,
     slug: input.slug,
     description: input.description || null,
     is_enabled: input.is_enabled,
     position: input.position,
+    ...(uploadedImagePath ? { image_path: uploadedImagePath } : {}),
   }
 
   const { error } = input.id
@@ -80,6 +118,9 @@ export async function upsertCategoryAction(
     : await db.from('games').insert(payload)
 
   if (error) {
+    if (uploadedImagePath) {
+      await db.storage.from(BUCKETS.brand).remove([uploadedImagePath]).catch(() => null)
+    }
     if (error.code === '23505') {
       return { ok: false, code: 'error', message: 'หมวดหมู่นี้มี URL ชนกับหมวดหมู่อื่น' }
     }
@@ -89,7 +130,42 @@ export async function upsertCategoryAction(
     return { ok: false, code: 'error', message: 'บันทึกหมวดหมู่ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' }
   }
 
+  if (oldImagePath && uploadedImagePath) {
+    await db.storage.from(BUCKETS.brand).remove([oldImagePath]).catch(() => null)
+  }
+
   await audit(db, input.id ? 'update' : 'create', input.slug, payload)
+  invalidateCatalog()
+  return { ok: true }
+}
+
+export async function removeCategoryImageAction(id: string): Promise<CategoryResult> {
+  await requireAdminAction('จัดการหมวดหมู่เกม')
+
+  const parsed = uuidSchema.safeParse(id)
+  if (!parsed.success) return { ok: false, code: 'error', message: 'ข้อมูลไม่ถูกต้อง' }
+
+  const db = await createSupabaseActionClient()
+  const { data: existing } = await db
+    .from('games')
+    .select('image_path, slug')
+    .eq('id', parsed.data)
+    .maybeSingle()
+
+  const { error } = await db
+    .from('games')
+    .update({ image_path: null })
+    .eq('id', parsed.data)
+
+  if (error) {
+    return { ok: false, code: 'error', message: 'ลบรูปปกหมวดหมู่ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' }
+  }
+
+  if (existing?.image_path) {
+    await db.storage.from(BUCKETS.brand).remove([existing.image_path]).catch(() => null)
+  }
+
+  await audit(db, 'remove_image', existing?.slug ?? parsed.data, {})
   invalidateCatalog()
   return { ok: true }
 }

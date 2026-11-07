@@ -121,6 +121,21 @@ describe('productUpsertSchema — required fields', () => {
   it('rejects an over-long name', () => {
     expect(productUpsertSchema.safeParse({ ...base, name: 'ก'.repeat(121) }).success).toBe(false)
   })
+
+  it('accepts optional priceThb, priceLak, and reserved status', () => {
+    const result = productUpsertSchema.safeParse({
+      ...base,
+      priceThb: '350',
+      priceLak: '220000',
+      status: 'reserved',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.priceThb).toBe(350)
+      expect(result.data.priceLak).toBe(220000)
+      expect(result.data.status).toBe('reserved')
+    }
+  })
 })
 
 describe('categorySchema', () => {

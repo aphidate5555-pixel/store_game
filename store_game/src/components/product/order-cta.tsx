@@ -22,7 +22,15 @@ import { getMessages } from '@/lib/i18n'
  *    non-secure origin, which is exactly the case when an administrator
  *    opens the site over the LAN on a phone to check a change.
  */
-export function OrderCta({ store, productCode }: { store: WhatsAppStore; productCode: string }) {
+export function OrderCta({
+  store,
+  productCode,
+  productName,
+}: {
+  store: WhatsAppStore
+  productCode: string
+  productName?: string
+}) {
   const m = getMessages()
   const toast = useToast()
   const [manualUrl, setManualUrl] = useState<string | null>(null)
@@ -61,7 +69,7 @@ export function OrderCta({ store, productCode }: { store: WhatsAppStore; product
 
     // The allowlist is applied here as well as at save time: a number that was
     // stored before the allowlist existed must not become a live link.
-    const url = safeWhatsAppUrl(store, productCode)
+    const url = safeWhatsAppUrl(store, productCode, productName)
 
     if (!url) {
       tab?.close()
@@ -108,7 +116,7 @@ export function OrderCta({ store, productCode }: { store: WhatsAppStore; product
     <button
       type="button"
       onClick={() => void handleOrder()}
-      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-base font-medium text-on-primary transition-[background-color,transform] duration-micro ease-out-soft hover:brightness-95 active:translate-y-px focus-ring"
+      className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-base font-semibold text-on-primary shadow-lg shadow-primary/20 transition-[background-color,transform] duration-micro ease-out-soft hover:brightness-95 active:translate-y-px focus-ring"
     >
       <Copy size={18} aria-hidden="true" />
       {m.whatsapp.cta}

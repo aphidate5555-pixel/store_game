@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 import { requireAdmin, loginHref } from '@/lib/auth/require-admin'
 import { Forbidden } from '../../../forbidden'
 import { ProductForm } from '../product-form'
-import { getProduct, listGames } from '../products-data'
+import { getProduct, getProductImages, listGames } from '../products-data'
 import { t } from '@/lib/i18n/th/admin'
 import type { Database } from '@/lib/database.types'
 
@@ -32,9 +32,10 @@ export default async function ProductFormPage({
   }
 
   const creating = isNew(productId)
-  const [product, games] = await Promise.all([
+  const [product, games, images] = await Promise.all([
     creating ? Promise.resolve(null) : getProduct(productId),
     listGames(),
+    creating ? Promise.resolve([]) : getProductImages(productId),
   ])
 
   // A missing id is a 404 rather than a redirect: the URL was wrong, not the
@@ -50,6 +51,7 @@ export default async function ProductFormPage({
       <ProductForm
         product={product as Database['public']['Tables']['products']['Row'] | null}
         games={games}
+        images={images}
       />
     </div>
   )

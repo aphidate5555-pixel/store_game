@@ -185,7 +185,8 @@ export type Database = {
           /** `08_games.sql` — false hides the game and every product inside it. */
           is_enabled: boolean
           /** `08_games.sql` — manual ordering for the catalog facets. */
-          sort_order: number
+          position?: number
+          sort_order?: number
           /** `08_games.sql` — maintained by the `set_updated_at` trigger. */
           created_at: string
           /** `08_games.sql` — maintained by the `set_updated_at` trigger. */
@@ -231,6 +232,10 @@ export type Database = {
           price_amount: number
           /** `06_products.sql` — `product_currency`. */
           currency: Database['public']['Enums']['product_currency']
+          /** `06_products.sql` — optional explicit THB price. */
+          price_thb?: number | null
+          /** `06_products.sql` — optional explicit LAK price. */
+          price_lak?: number | null
           /** `06_products.sql` — rarity label, e.g. Mythic / Legend; nullable. */
           rank: string | null
           /** `06_products.sql` — how many heroes the account includes. */
@@ -261,6 +266,8 @@ export type Database = {
           game_id: string
           price_amount: number
           currency?: Database['public']['Enums']['product_currency']
+          price_thb?: number | null
+          price_lak?: number | null
           rank?: string | null
           hero_count?: number
           skin_count?: number
@@ -279,6 +286,8 @@ export type Database = {
           game_id?: string
           price_amount?: number
           currency?: Database['public']['Enums']['product_currency']
+          price_thb?: number | null
+          price_lak?: number | null
           rank?: string | null
           hero_count?: number
           skin_count?: number
@@ -575,8 +584,8 @@ export type Database = {
     Enums: {
       /** `02_enums.sql` (§5.1) — Thai baht and Lao kip. */
       product_currency: 'THB' | 'LAK'
-      /** `02_enums.sql` (§5.1) — there is no stock system, only "sold". */
-      product_status: 'available' | 'sold'
+      /** `02_enums.sql` (§5.1) — available, reserved, or sold. */
+      product_status: 'available' | 'reserved' | 'sold'
       /** `02_enums.sql` (§5.1) — whether the code is tied to a player account. */
       product_binding: 'bound' | 'unbound'
     }
