@@ -34,7 +34,8 @@ export async function generateSitemaps(): Promise<{ id: number }[]> {
   return ids
 }
 
-export default async function sitemap({ id }: { id: number }): Promise<MetadataRoute.Sitemap> {
-  if (id === 0) return staticSitemap()
-  return productSitemapPage(id)
+export default async function sitemap({ id }: { id: number | string }): Promise<MetadataRoute.Sitemap> {
+  const pageId = Number(id)
+  if (pageId === 0) return staticSitemap()
+  return productSitemapPage(pageId)
 }

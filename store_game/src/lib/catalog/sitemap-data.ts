@@ -70,7 +70,7 @@ export async function countProducts(): Promise<number> {
 }
 
 export async function productSitemapPage(id: number): Promise<MetadataRoute.Sitemap> {
-  const from = id * PRODUCT_SITEMAP_SIZE
+  const from = Math.max(0, id - 1) * PRODUCT_SITEMAP_SIZE
   const db = await getPublicDb('sitemap')
   const { data, error } = await db
     .from('products')

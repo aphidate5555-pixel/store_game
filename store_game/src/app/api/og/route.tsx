@@ -133,7 +133,7 @@ export async function GET(): Promise<Response> {
           <div style={{ color: '#F5F5F7', fontSize: 34 }}>{name}</div>
         </div>
 
-        <div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ color: '#F5F5F7', fontSize: 72, fontWeight: 700, lineHeight: 1.2 }}>
             ไอดีเกมพร้อมเล่น
           </div>

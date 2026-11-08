@@ -44,7 +44,7 @@ const CSP = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
-  "frame-ancestors 'none'",
+  ...(isDev ? [] : ["frame-ancestors 'none'"]),
   "frame-src 'self'", // live preview iframe on /admin/appearance (C-37)
   "worker-src 'self' blob:",
 ].join('; ')
@@ -72,6 +72,15 @@ const nextConfig: NextConfig = {
     },
   },
 
+  async rewrites() {
+    return [
+      {
+        source: '/sitemap.xml',
+        destination: '/sitemap/0.xml',
+      },
+    ]
+  },
+
   async headers() {
     return [
       {
@@ -79,7 +88,7 @@ const nextConfig: NextConfig = {
         headers: [
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'X-Frame-Options', value: 'DENY' },
+          ...(isDev ? [] : [{ key: 'X-Frame-Options', value: 'DENY' }]),
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
